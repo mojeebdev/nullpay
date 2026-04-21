@@ -1,65 +1,117 @@
-import Image from "next/image";
+'use client'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
+import Logo from '@/components/Logo'
 
-export default function Home() {
+const ParticleVoid = dynamic(() => import('@/components/ParticleVoid'), { ssr: false })
+
+export default function Landing() {
+  const [visible, setVisible] = useState(false)
+  useEffect(() => { setTimeout(() => setVisible(true), 120) }, [])
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <div style={{ minHeight: '100vh', background: '#050508', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+      {/* ANIMATION 01 — Particle void background */}
+      <ParticleVoid />
+
+      {/* Nav */}
+      <header style={{
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '24px 32px',
+      }}>
+        <Logo />
+        <nav style={{ display: 'flex', gap: 40, alignItems: 'center' }}>
+          <a href="#" style={{ fontFamily: "'Lato',sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6C63FF', borderBottom: '2px solid #6C63FF', paddingBottom: 3, textDecoration: 'none' }}>STARKNET</a>
+          <a href="#" style={{ fontFamily: "'Lato',sans-serif", fontSize: 12, fontWeight: 400, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8A8A9A', textDecoration: 'none' }}>ASSETS</a>
+          <a href="#" style={{ fontFamily: "'Lato',sans-serif", fontSize: 12, fontWeight: 400, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8A8A9A', textDecoration: 'none' }}>LEDGER</a>
+        </nav>
+        <Link href="/onboard" style={{
+          fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700,
+          letterSpacing: '0.12em', textTransform: 'uppercase',
+          color: '#F0F0F8', border: '1px solid #2C2C3A',
+          padding: '10px 20px', textDecoration: 'none',
+        }}>CONNECT_WALLET</Link>
+      </header>
+
+      {/* Hero */}
+      <main style={{
+        flex: 1, display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        position: 'relative', zIndex: 1,
+        minHeight: '100vh',
+      }}>
+        {visible && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+
+            {/* ANIMATION 02 — Glitch title */}
+            <h1
+              className="glitch fade-up fade-up-1"
+              data-text="NULLPAY"
+              style={{
+                fontFamily: "'Playfair Display',serif",
+                fontWeight: 900,
+                fontSize: 'clamp(72px,12vw,130px)',
+                color: '#F0F0F8',
+                letterSpacing: '-0.02em',
+                lineHeight: '0.95em',
+                marginBottom: 20,
+              }}
+            >NULLPAY</h1>
+
+            <p className="fade-up fade-up-2" style={{
+              fontFamily: "'Lato',sans-serif", fontWeight: 300,
+              fontSize: 13, letterSpacing: '0.2em', textTransform: 'uppercase',
+              color: '#8A8A9A', marginBottom: 52,
+            }}>SEND MONEY. LEAVE NO TRACE.</p>
+
+            <div className="fade-up fade-up-3" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <Link href="/onboard" style={{
+                fontFamily: "'Lato',sans-serif", fontWeight: 700, fontSize: 12,
+                letterSpacing: '0.14em', textTransform: 'uppercase',
+                color: '#F0F0F8', background: '#6C63FF',
+                padding: '18px 48px', borderRadius: 6, textDecoration: 'none',
+                display: 'inline-flex', alignItems: 'center', gap: 10,
+              }}>ENTER <span>→</span></Link>
+              <a href="https://github.com/mojeebdev/nullpay" target="_blank" rel="noopener noreferrer" style={{
+                fontFamily: "'Lato',sans-serif", fontWeight: 700, fontSize: 12,
+                letterSpacing: '0.14em', textTransform: 'uppercase',
+                color: '#8A8A9A', background: 'transparent',
+                border: '1px solid #2C2C3A',
+                padding: '18px 32px', borderRadius: 6, textDecoration: 'none',
+              }}>VIEW SOURCE</a>
+            </div>
+
+            {/* Feature pills */}
+            <div className="fade-up fade-up-4" style={{ marginTop: 72, display: 'flex', gap: 48, flexWrap: 'wrap', justifyContent: 'center' }}>
+              {[['No wallet needed', 'to receive'], ['Amount hidden', 'on-chain'], ['One-time link', 'self-destructs']].map(([t, s]) => (
+                <div key={t} style={{ textAlign: 'center' }}>
+                  <div style={{ fontFamily: "'Playfair Display',serif", fontSize: 14, fontWeight: 700, color: '#F0F0F8', marginBottom: 4 }}>{t}</div>
+                  <div style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#4A4A5A' }}>{s}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
+
+      {/* Footer */}
+      <footer style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 10,
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        gap: 12, padding: '28px 24px', pointerEvents: 'none',
+      }}>
+        <div style={{ display: 'flex', gap: 32, pointerEvents: 'auto' }}>
+          {['PRIVACY', 'STARKNET_NODE', 'RESOURCES'].map(l => (
+            <a key={l} href="#" style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#4A4A5A', textDecoration: 'none' }}>{l}</a>
+          ))}
+        </div>
+        <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#4A4A5A', opacity: 0.5 }}>
+          © 2025 NULLPAY. PRECISION_LEDGER_ENCRYPTED.
+        </span>
+      </footer>
     </div>
-  );
+  )
 }
