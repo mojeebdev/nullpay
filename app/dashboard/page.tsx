@@ -30,24 +30,32 @@ export default function Dashboard() {
     if (ready && !authenticated) router.push('/onboard')
   }, [ready, authenticated, router])
 
-  // Fetch balances from Starknet RPC
+  // Fetch balances via raw JSON-RPC
   useEffect(() => {
     if (!walletAddress) return
     const fetchBalances = async () => {
       setBalance(b => ({ ...b, loading: true }))
       try {
         const network = process.env.NEXT_PUBLIC_STARKNET_NETWORK || 'sepolia'
-        const rpc = process.env.NEXT_PUBLIC_STARKNET_RPC_URL || 'https://starknet-sepolia.public.blastapi.io'
+
+        const RPCS = network === 'mainnet' ? [
+          'https://starknet-mainnet.public.blastapi.io/rpc/v0_7',
+          'https://rpc.starknet.lava.build',
+        ] : [
+          'https://starknet-sepolia.public.blastapi.io/rpc/v0_7',
+          'https://rpc.starknet-testnet.lava.build',
+          'https://starknet-sepolia.infura.io/v3/public',
+        ]
 
         const USDC = network === 'mainnet'
-          ? '0x033068f6539f8e6e6b131e6b2b814e6c34a5224bc66947c47dab9dfee93b35fb'
+          ? '0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8'
           : '0x0512feac6339ff7889822cb5aa2a86c848e9d392bb0e3e237c008674feed8343'
         const STRK = '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d'
 
-        // balanceOf(account) selector — keccak256('balanceOf')
-        const BALANCE_OF = '0x2e4263afad30923c891518314c3c95dbe830a16874e8abc5777a9a20b54c76e'
+        // balanceOf selector
+        const SELECTOR = '0x2e4263afad30923c891518314c3c95dbe830a16874e8abc5777a9a20b54c76e'
 
-        const call = async (contract: string, decimals: number) => {
+        const rpcCall = async (rpc: string, contract: string) => {
           const res = await fetch(rpc, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -56,30 +64,42 @@ export default function Dashboard() {
               method: 'starknet_call',
               params: [{
                 contract_address: contract,
-                entry_point_selector: BALANCE_OF,
+                entry_point_selector: SELECTOR,
                 calldata: [walletAddress],
-              }, 'pending'],
+              }, 'latest'],
             }),
           })
-          const data = await res.json()
-          if (data.error) {
-            console.error('RPC error:', data.error)
-            return '0.00'
-          }
-          if (data.result && data.result.length >= 2) {
-            // ERC20 balanceOf returns uint256 as [low, high]
-            const low  = BigInt(data.result[0])
-            const high = BigInt(data.result[1])
-            const raw  = low + (high * (BigInt(2) ** BigInt(128)))
-            const val  = Number(raw) / Math.pow(10, decimals)
-            return val.toLocaleString(undefined, { minimumFractionDigits: decimals === 6 ? 2 : 4, maximumFractionDigits: decimals === 6 ? 2 : 4 })
+          if (!res.ok) throw new Error('HTTP ' + res.status)
+          return res.json()
+        }
+
+        const getBalance = async (contract: string, decimals: number): Promise<string> => {
+          for (const rpc of RPCS) {
+            try {
+              const data = await rpcCall(rpc, contract)
+              if (data.error) continue
+              if (data.result && data.result.length >= 1) {
+                const low  = BigInt(data.result[0] || '0x0')
+                const high = data.result[1] ? BigInt(data.result[1]) : 0n
+                const raw  = low + high * (BigInt(2) ** BigInt(128))
+                const val  = Number(raw) / Math.pow(10, decimals)
+                return val.toLocaleString(undefined, {
+                  minimumFractionDigits: decimals === 6 ? 2 : 4,
+                  maximumFractionDigits: decimals === 6 ? 2 : 4,
+                })
+              }
+            } catch { continue }
           }
           return '0.00'
         }
 
-        const [usdc, strk] = await Promise.all([call(USDC, 6), call(STRK, 18)])
+        const [usdc, strk] = await Promise.all([
+          getBalance(USDC, 6),
+          getBalance(STRK, 18),
+        ])
         setBalance({ usdc, strk, loading: false })
-      } catch {
+      } catch (e) {
+        console.error('fetchBalances error:', e)
         setBalance({ usdc: '0.00', strk: '0.00', loading: false })
       }
     }
