@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createHmac } from 'crypto'
+import crypto from 'crypto'
+import canonicalize from 'canonicalize'
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,42 +13,47 @@ export async function POST(req: NextRequest) {
 
     const appId     = process.env.PRIVY_APP_ID!
     const appSecret = process.env.PRIVY_APP_SECRET!
+    const authKey   = process.env.PRIVY_AUTHORIZATION_KEY!
 
-    // Debug: confirm env vars are loaded
-    console.log('appId loaded:', !!appId)
-    console.log('appSecret loaded:', !!appSecret)
-    console.log('appSecret preview:', appSecret?.slice(0, 6))
-
-    const path        = `/api/v1/wallets/${walletId}/rpc`
-    const url         = `https://auth.privy.io${path}`
-    const method      = 'POST'
-    const requestBody = JSON.stringify({
+    const url        = `https://api.privy.io/v1/wallets/${walletId}/rpc`
+    const requestBody = {
       method: 'secp256k1_sign',
       params: { hash },
-    })
+    }
 
-    const timestamp = Math.floor(Date.now() / 1000).toString()
-    const payload   = `${timestamp}:${method}:${path}:${requestBody}`
+    // P-256 authorization signature
+    const expiry = (Date.now() + 60000).toString() // 1 min from now
 
-    console.log('Signing payload:', payload)
+    const payload = canonicalize({
+      version: 1,
+      method: 'POST',
+      url,
+      body: requestBody,
+      headers: { 'privy-app-id': appId },
+    })!
 
-    const signature = createHmac('sha256', appSecret)
-      .update(payload)
-      .digest('hex')
+    const privateKeyAsString = authKey.replace('wallet-auth:', '')
+    const privateKeyAsPem = `-----BEGIN PRIVATE KEY-----\n${privateKeyAsString}\n-----END PRIVATE KEY-----`
+    const privateKey = crypto.createPrivateKey({ key: privateKeyAsPem, format: 'pem' })
+
+    const signatureBuffer = crypto.sign('sha256', Buffer.from(payload), privateKey)
+    const signature = signatureBuffer.toString('base64')
 
     const res = await fetch(url, {
-    method: 'POST',
-     headers: {
-    'Content-Type': 'application/json',
-    'privy-app-id': appId,
-    'privy-authorization-signature': `t=${timestamp},s=${signature}`,
-    'origin': 'https://nullpay.blindspotlab.xyz',  
-    'Authorization': 'Basic ' + Buffer.from(`${appId}:${appSecret}`).toString('base64'), 
-     },
-    body: requestBody,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Basic ' + Buffer.from(`${appId}:${appSecret}`).toString('base64'),
+        'privy-app-id': appId,
+        'privy-authorization-signature': signature,
+        'privy-request-expiry': expiry,
+        'origin': 'https://nullpay.blindspotlab.xyz', 
+      },
+      body: JSON.stringify(requestBody),
     })
 
     const data = await res.json()
+    console.log('Privy response:', data)
 
     if (!res.ok) {
       console.error('Privy sign error:', data)
