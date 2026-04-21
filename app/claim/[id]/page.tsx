@@ -85,18 +85,7 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
       if (!embeddedWallet) throw new Error('No wallet found. Please login again.')
 
       // Onboard recipient wallet via Starkzap + Privy
-      const wallet = await onboardWithPrivy(
-        embeddedWallet.address,
-        embeddedWallet.address,
-        async (_walletId: string, hash: string) => {
-          const provider = await embeddedWallet.getEthereumProvider()
-          const accounts: string[] = await provider.request({ method: 'eth_accounts' })
-          const sig: string = await provider.request({ method: 'personal_sign', params: [hash, accounts[0]] })
-          // Strip 0x prefix and convert Ethereum 65-byte sig to 64-byte r||s
-          const clean = sig.startsWith('0x') ? sig.slice(2) : sig
-          return clean.slice(0, 128) // return r||s only (drop the v byte)
-        }
-      )
+      const wallet = await onboardWithPrivy(embeddedWallet.address, embeddedWallet.address)
 
       // Reconstruct the Tongo instance using the stored private key
       const provider = (wallet as any).getProvider()
@@ -233,7 +222,7 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
                 {drop.amount} {drop.token} landed in your wallet.<br />This link is now dead.
               </p>
               {txHash && (
-                <a href={`https://sepolia.voyage.online/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', fontFamily: "'Lato',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 28, textDecoration: 'none' }}>
+                <a href={`https://sepolia.starkscan.co/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', fontFamily: "'Lato',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 28, textDecoration: 'none' }}>
                   VIEW ON STARKSCAN →
                 </a>
               )}

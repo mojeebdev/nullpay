@@ -48,18 +48,7 @@ export default function Drop() {
       setStatus('Connecting to Starknet...')
 
       // Onboard via Starkzap + Privy
-      const wallet = await onboardWithPrivy(
-        embeddedWallet.address,
-        embeddedWallet.address,
-        async (_walletId: string, hash: string) => {
-          const provider = await embeddedWallet.getEthereumProvider()
-          const accounts: string[] = await provider.request({ method: 'eth_accounts' })
-          const sig: string = await provider.request({ method: 'personal_sign', params: [hash, accounts[0]] })
-          // Strip 0x prefix and convert Ethereum 65-byte sig to 64-byte r||s
-          const clean = sig.startsWith('0x') ? sig.slice(2) : sig
-          return clean.slice(0, 128) // return r||s only (drop the v byte)
-        }
-      )
+      const wallet = await onboardWithPrivy(embeddedWallet.address, embeddedWallet.address)
 
       setStatus('Generating ZK proof...')
 
@@ -275,7 +264,7 @@ export default function Drop() {
                     Your drop is live.
                   </h1>
                   {txHash && (
-                    <a href={`https://sepolia.voyage.online/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 24, textDecoration: 'none' }}>
+                    <a href={`https://sepolia.starkscan.co/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 24, textDecoration: 'none' }}>
                       VIEW ON STARKSCAN →
                     </a>
                   )}

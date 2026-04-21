@@ -6,7 +6,7 @@ const IS_MAINNET = NETWORK === 'mainnet'
 
 const TOKENS = {
   mainnet: {
-    USDC: { symbol: 'USDC', decimals: 6,  address: '0x033068f6539f8e6e6b131e6b2b814e6c34a5224bc66947c47dab9dfee93b35fb' },
+    USDC: { symbol: 'USDC', decimals: 6,  address: '0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8' },
     STRK: { symbol: 'STRK', decimals: 18, address: '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d' },
   },
   sepolia: {
@@ -30,17 +30,20 @@ export function getSDK(): StarkZap {
   return _sdk
 }
 
-export async function onboardWithPrivy(
-  walletId: string,
-  publicKey: string,
-  rawSign: (walletId: string, hash: string) => Promise<string>
-) {
+export async function onboardWithPrivy(walletId: string, publicKey: string) {
   const sdk = getSDK()
+  const appUrl = typeof window !== 'undefined'
+    ? window.location.origin
+    : process.env.NEXT_PUBLIC_APP_URL!
   const { wallet } = await sdk.onboard({
     strategy: OnboardStrategy.Privy,
     deploy: 'if_needed',
     privy: {
-      resolve: async () => ({ walletId, publicKey, rawSign }),
+      resolve: async () => ({
+        walletId,
+        publicKey,
+        serverUrl: `${appUrl}/api/sign`,
+      }),
     },
   })
   return wallet
