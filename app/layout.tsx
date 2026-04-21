@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import NullPayPrivyProvider from '@/components/PrivyProvider'
-
+import { Analytics } from '@vercel/analytics/react'
 export const metadata: Metadata = {
   title: 'NullPay — Send money. Leave no trace.',
   description: 'Privacy-first P2P payments on Starknet. Drop money anonymously via a one-time claim link. No wallet required to receive. Powered by Starkzap.',
@@ -37,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <NullPayPrivyProvider>
           {children}
         </NullPayPrivyProvider>
+        <Analytics />
       </body>
     </html>
   )
