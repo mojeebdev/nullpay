@@ -4,7 +4,7 @@ import { PrivyProvider } from '@privy-io/react-auth'
 export default function NullPayPrivyProvider({ children }: { children: React.ReactNode }) {
   return (
     <PrivyProvider
-      appId={process.env.PRIVY_APP_ID!}
+      appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID!}
       config={{
         appearance: {
           theme: 'dark',
