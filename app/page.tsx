@@ -104,12 +104,12 @@ export default function Landing() {
         gap: 12, padding: '28px 24px', pointerEvents: 'none',
       }}>
         <div style={{ display: 'flex', gap: 32, pointerEvents: 'auto' }}>
-          {['PRIVACY', 'STARKNET_NODE', 'RESOURCES'].map(l => (
+
             <a key={l} href="#" style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#4A4A5A', textDecoration: 'none' }}>{l}</a>
           ))}
         </div>
         <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#4A4A5A', opacity: 0.5 }}>
-          © 2025 NULLPAY. PRECISION_LEDGER_ENCRYPTED.
+
         </span>
       </footer>
     </div>

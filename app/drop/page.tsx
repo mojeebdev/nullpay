@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import Logo from '@/components/Logo'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -9,10 +10,10 @@ import { onboardWithPrivy, getTongoInstance, fundDrop } from '@/lib/starkzap'
 import { TongoConfidential } from 'starkzap'
 
 const NAV = [
-  { icon: '⊞', label: 'DASHBOARD', active: false },
-  { icon: '◈', label: 'PAYMENTS',  active: true  },
-  { icon: '◉', label: 'SECURITY',  active: false },
-  { icon: '▣', label: 'VAULT',     active: false },
+  { icon: '⊞', label: 'DASHBOARD', active: false, href: '/dashboard' },
+  { icon: '◈', label: 'PAYMENTS',  active: true,  href: '/drop' },
+  { icon: '◉', label: 'SECURITY',  active: false, href: null },
+  { icon: '▣', label: 'VAULT',     active: false, href: null },
 ]
 
 export default function Drop() {
@@ -29,7 +30,7 @@ export default function Drop() {
   const [copied, setCopied]     = useState(false)
   const [txHash, setTxHash]     = useState<string|null>(null)
 
-  
+  // Redirect if not authenticated
   useEffect(() => {
     if (ready && !authenticated) router.push('/onboard')
   }, [ready, authenticated, router])
@@ -150,10 +151,20 @@ export default function Drop() {
           </div>
           <nav style={{ flex: 1 }}>
             {NAV.map(item => (
-              <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '15px 24px', background: item.active ? '#14141C' : 'transparent', borderLeft: item.active ? '3px solid #6C63FF' : '3px solid transparent', color: item.active ? '#F0F0F8' : '#4A4A5A', cursor: 'pointer', transition: 'all 0.15s' }}>
-                <span style={{ fontSize: 15 }}>{item.icon}</span>
-                <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{item.label}</span>
-              </div>
+              item.href ? (
+                <Link key={item.label} href={item.href} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '15px 24px', background: item.active ? '#14141C' : 'transparent', borderLeft: item.active ? '3px solid #6C63FF' : '3px solid transparent', color: item.active ? '#F0F0F8' : '#4A4A5A', textDecoration: 'none', transition: 'all 0.15s' }}>
+                  <span style={{ fontSize: 15 }}>{item.icon}</span>
+                  <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{item.label}</span>
+                </Link>
+              ) : (
+                <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px 24px', borderLeft: '3px solid transparent', color: '#2C2C3A', cursor: 'not-allowed' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <span style={{ fontSize: 15 }}>{item.icon}</span>
+                    <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{item.label}</span>
+                  </div>
+                  <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#2C2C3A', border: '1px solid #1E1E28', padding: '2px 6px', borderRadius: 3 }}>SOON</span>
+                </div>
+              )
             ))}
           </nav>
           <div style={{ padding: 20 }}>
