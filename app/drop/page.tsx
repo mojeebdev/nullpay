@@ -309,7 +309,7 @@ export default function Drop() {
         <div style={{ display: 'flex', gap: 32 }}>
           {['PRIVACY','STARKNET_NODE','RESOURCES'].map(l => <a key={l} href="#" style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#4A4A5A', textDecoration: 'none' }}>{l}</a>)}
         </div>
-        <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#4A4A5A' }}>© 2025 NULLPAY. PRECISION_LEDGER_ENCRYPTED.</span>
+        <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#4A4A5A' }}>© 2026 NULLPAY. PRECISION_LEDGER_ENCRYPTED.</span>
       </footer>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }

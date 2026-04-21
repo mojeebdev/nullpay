@@ -282,7 +282,7 @@ export default function Dashboard() {
       </div>
 
       <footer style={{ marginLeft: 240, padding: '20px 48px', display: 'flex', justifyContent: 'center' }}>
-        <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#4A4A5A' }}>© 2025 NULLPAY. PRECISION_LEDGER_ENCRYPTED.</span>
+        <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#4A4A5A' }}>© 2026 NULLPAY. PRECISION_LEDGER_ENCRYPTED.</span>
       </footer>
 
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }`}</style>
