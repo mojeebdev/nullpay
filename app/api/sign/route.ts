@@ -36,14 +36,14 @@ export async function POST(req: NextRequest) {
       .digest('hex')
 
     const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // ✅ Only use ONE auth method — remove Basic auth
-        'privy-app-id': appId,
-        'privy-authorization-signature': `t=${timestamp},s=${signature}`,
-      },
-      body: requestBody,
+    method: 'POST',
+     headers: {
+    'Content-Type': 'application/json',
+    'privy-app-id': appId,
+    'privy-authorization-signature': `t=${timestamp},s=${signature}`,
+    'origin': 'https://nullpay.blindspotlab.xyz',  // ← add here
+     },
+    body: requestBody,
     })
 
     const data = await res.json()
