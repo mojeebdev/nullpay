@@ -20,7 +20,7 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
 
   const fullHash = `claim:void:${id}`
 
-  
+  // ANIMATION 05 — Hash typewriter on load
   useEffect(() => {
     if (phase !== 'resolving') return
     let i = 0
@@ -91,7 +91,10 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
         async (_walletId: string, hash: string) => {
           const provider = await embeddedWallet.getEthereumProvider()
           const accounts: string[] = await provider.request({ method: 'eth_accounts' })
-          return provider.request({ method: 'personal_sign', params: [hash, accounts[0]] })
+          const sig: string = await provider.request({ method: 'personal_sign', params: [hash, accounts[0]] })
+          // Strip 0x prefix and convert Ethereum 65-byte sig to 64-byte r||s
+          const clean = sig.startsWith('0x') ? sig.slice(2) : sig
+          return clean.slice(0, 128) // return r||s only (drop the v byte)
         }
       )
 
@@ -230,7 +233,7 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
                 {drop.amount} {drop.token} landed in your wallet.<br />This link is now dead.
               </p>
               {txHash && (
-                <a href={`https://sepolia.voyager.online/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', fontFamily: "'Lato',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 28, textDecoration: 'none' }}>
+                <a href={`https://sepolia.voyage.online/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', fontFamily: "'Lato',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 28, textDecoration: 'none' }}>
                   VIEW ON STARKSCAN →
                 </a>
               )}
@@ -259,9 +262,9 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
       </main>
 
       <footer style={{ padding: '28px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-
+        <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#4A4A5A' }}>© 2025 NULLPAY. PRECISION_LEDGER_ENCRYPTED.</span>
         <div style={{ display: 'flex', gap: 28 }}>
-
+          {['PRIVACY','STARKNET_NODE','RESOURCES'].map(l => <a key={l} href="#" style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#4A4A5A', textDecoration: 'none' }}>{l}</a>)}
         </div>
       </footer>
 

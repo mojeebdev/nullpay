@@ -54,7 +54,10 @@ export default function Drop() {
         async (_walletId: string, hash: string) => {
           const provider = await embeddedWallet.getEthereumProvider()
           const accounts: string[] = await provider.request({ method: 'eth_accounts' })
-          return provider.request({ method: 'personal_sign', params: [hash, accounts[0]] })
+          const sig: string = await provider.request({ method: 'personal_sign', params: [hash, accounts[0]] })
+          // Strip 0x prefix and convert Ethereum 65-byte sig to 64-byte r||s
+          const clean = sig.startsWith('0x') ? sig.slice(2) : sig
+          return clean.slice(0, 128) // return r||s only (drop the v byte)
         }
       )
 
@@ -272,7 +275,7 @@ export default function Drop() {
                     Your drop is live.
                   </h1>
                   {txHash && (
-                    <a href={`https://sepolia.voyager.online/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 24, textDecoration: 'none' }}>
+                    <a href={`https://sepolia.voyage.online/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 24, textDecoration: 'none' }}>
                       VIEW ON STARKSCAN →
                     </a>
                   )}
@@ -309,7 +312,7 @@ export default function Drop() {
         <div style={{ display: 'flex', gap: 32 }}>
           {['PRIVACY','STARKNET_NODE','RESOURCES'].map(l => <a key={l} href="#" style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#4A4A5A', textDecoration: 'none' }}>{l}</a>)}
         </div>
-        <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#4A4A5A' }}>© 2026 NULLPAY. PRECISION_LEDGER_ENCRYPTED.</span>
+        <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#4A4A5A' }}>© 2025 NULLPAY. PRECISION_LEDGER_ENCRYPTED.</span>
       </footer>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
