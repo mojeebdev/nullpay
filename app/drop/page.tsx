@@ -42,7 +42,7 @@ export default function Drop() {
 
     try {
       // Get Privy embedded wallet
-      const embeddedWallet = wallets.find(w => w.walletClientType === 'privy')
+      const embeddedWallet = wallets.find(w => w.walletClientType === 'privy' && w.linked)
       if (!embeddedWallet) throw new Error('No embedded wallet found')
       // Get the internal Privy wallet ID from linkedAccounts
       const linkedWallet = user?.linkedAccounts?.find(

@@ -23,7 +23,7 @@ export default function Dashboard() {
   const [balance, setBalance] = useState<Balance>({ usdc: '—', strk: '—', loading: true })
   const [copied, setCopied] = useState(false)
 
-  const embeddedWallet = wallets.find(w => w.walletClientType === 'privy')
+  const embeddedWallet = wallets.find(w => w.walletClientType === 'privy' && w.linked)
   const walletAddress = embeddedWallet?.address ?? (user as any)?.wallet?.address ?? null
 
   useEffect(() => {
