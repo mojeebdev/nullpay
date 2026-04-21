@@ -38,15 +38,10 @@ export default function Dashboard() {
       try {
         const network = process.env.NEXT_PUBLIC_STARKNET_NETWORK || 'sepolia'
 
-        const RPCS = network === 'mainnet' ? [
-          process.env.NEXT_PUBLIC_STARKNET_RPC_URL,
-          'https://starknet-mainnet.public.blastapi.io/rpc/v0_7',
-          'https://rpc.starknet.lava.build',
-        ] : [
-          process.env.NEXT_PUBLIC_STARKNET_RPC_URL,
+        const RPCS = [
+          process.env.NEXT_PUBLIC_STARKNET_RPC_URL!,
           'https://starknet-sepolia.public.blastapi.io/rpc/v0_7',
           'https://rpc.starknet-testnet.lava.build',
-          'https://starknet-sepolia.infura.io/v3/public',
         ]
 
         const USDC = network === 'mainnet'
