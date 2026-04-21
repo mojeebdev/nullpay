@@ -8,7 +8,7 @@ import { onboardWithPrivy, getTongoInstance, claimDrop } from '@/lib/starkzap'
 
 export default function ClaimPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const { ready, authenticated, login } = usePrivy()
+  const { ready, authenticated, login, user } = usePrivy()
   const { wallets } = useWallets()
 
   const [phase, setPhase] = useState<'resolving'|'login'|'ready'|'claiming'|'claimed'|'invalid'>('resolving')
@@ -83,9 +83,14 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
       // Get Privy embedded wallet
       const embeddedWallet = wallets.find(w => w.walletClientType === 'privy')
       if (!embeddedWallet) throw new Error('No wallet found. Please login again.')
+      // Get the internal Privy wallet ID from linkedAccounts
+      const linkedWallet = user?.linkedAccounts?.find(
+        (a: any) => a.type === 'wallet' && a.address?.toLowerCase() === embeddedWallet.address.toLowerCase()
+      ) as any
+      const privyWalletId = linkedWallet?.id || linkedWallet?.walletClientId || embeddedWallet.address
 
       // Onboard recipient wallet via Starkzap + Privy
-      const wallet = await onboardWithPrivy(embeddedWallet.address, embeddedWallet.address)
+      const wallet = await onboardWithPrivy(privyWalletId, embeddedWallet.address)
 
       // Reconstruct the Tongo instance using the stored private key
       const provider = (wallet as any).getProvider()
@@ -222,7 +227,7 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
                 {drop.amount} {drop.token} landed in your wallet.<br />This link is now dead.
               </p>
               {txHash && (
-                <a href={`https://sepolia.starkscan.co/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', fontFamily: "'Lato',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 28, textDecoration: 'none' }}>
+                <a href={`https://sepolia.voyage.online/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', fontFamily: "'Lato',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 28, textDecoration: 'none' }}>
                   VIEW ON STARKSCAN →
                 </a>
               )}
