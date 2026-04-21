@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import crypto from 'crypto'
 import canonicalize from 'canonicalize'
+import crypto from 'crypto'
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,29 +15,32 @@ export async function POST(req: NextRequest) {
     const appSecret = process.env.PRIVY_APP_SECRET!
     const authKey   = process.env.PRIVY_AUTHORIZATION_KEY!
 
-    const url        = `https://api.privy.io/v1/wallets/${walletId}/rpc`
+    const url         = `https://api.privy.io/v1/wallets/${walletId}/rpc`
     const requestBody = {
       method: 'secp256k1_sign',
       params: { hash },
     }
 
-    // P-256 authorization signature
-    const expiry = (Date.now() + 60000).toString() // 1 min from now
-
-    const payload = canonicalize({
+    // ✅ Exact payload structure per Privy docs
+    const signaturePayload = {
       version: 1,
       method: 'POST',
-      url,
-      body: requestBody,
-      headers: { 'privy-app-id': appId },
-    })!
+      url: url,                          // no trailing slash
+      body: requestBody,                 // JSON object, not string
+      headers: {
+        'privy-app-id': appId,           // ONLY privy- headers here
+      },
+    }
 
-    const privateKeyAsString = authKey.replace('wallet-auth:', '')
-    const privateKeyAsPem = `-----BEGIN PRIVATE KEY-----\n${privateKeyAsString}\n-----END PRIVATE KEY-----`
-    const privateKey = crypto.createPrivateKey({ key: privateKeyAsPem, format: 'pem' })
+    // ✅ Canonicalize per RFC 8785
+    const serialized = canonicalize(signaturePayload)!
 
-    const signatureBuffer = crypto.sign('sha256', Buffer.from(payload), privateKey)
-    const signature = signatureBuffer.toString('base64')
+    // ✅ Sign with ECDSA P-256, base64 output
+    const privateKeyStr = authKey.replace('wallet-auth:', '')
+    const privateKeyPem = `-----BEGIN PRIVATE KEY-----\n${privateKeyStr}\n-----END PRIVATE KEY-----`
+    const privateKey    = crypto.createPrivateKey({ key: privateKeyPem, format: 'pem' })
+    const sigBuffer     = crypto.sign('sha256', Buffer.from(serialized), privateKey)
+    const signature     = sigBuffer.toString('base64')
 
     const res = await fetch(url, {
       method: 'POST',
@@ -46,8 +49,7 @@ export async function POST(req: NextRequest) {
         'Authorization': 'Basic ' + Buffer.from(`${appId}:${appSecret}`).toString('base64'),
         'privy-app-id': appId,
         'privy-authorization-signature': signature,
-        'privy-request-expiry': expiry,
-        'origin': 'https://nullpay.blindspotlab.xyz', 
+        'origin': 'https://nullpay.blindspotlab.xyz',
       },
       body: JSON.stringify(requestBody),
     })
