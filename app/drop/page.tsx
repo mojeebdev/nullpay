@@ -1,4 +1,4 @@
-'use client'
+                  'use client'
 import Link from 'next/link'
 import Logo from '@/components/Logo'
 import { useState, useEffect } from 'react'
@@ -44,11 +44,16 @@ export default function Drop() {
       // Get Privy embedded wallet
       const embeddedWallet = wallets.find(w => w.walletClientType === 'privy')
       if (!embeddedWallet) throw new Error('No embedded wallet found')
+      // Get the internal Privy wallet ID from linkedAccounts
+      const linkedWallet = user?.linkedAccounts?.find(
+        (a: any) => a.type === 'wallet' && a.address?.toLowerCase() === embeddedWallet.address.toLowerCase()
+      ) as any
+      const privyWalletId = linkedWallet?.id || linkedWallet?.walletClientId || embeddedWallet.address
 
       setStatus('Connecting to Starknet...')
 
       // Onboard via Starkzap + Privy
-      const wallet = await onboardWithPrivy(embeddedWallet.address, embeddedWallet.address)
+      const wallet = await onboardWithPrivy(privyWalletId, embeddedWallet.address)
 
       setStatus('Generating ZK proof...')
 
@@ -264,7 +269,7 @@ export default function Drop() {
                     Your drop is live.
                   </h1>
                   {txHash && (
-                    <a href={`https://sepolia.starkscan.co/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 24, textDecoration: 'none' }}>
+                    <a href={`https://sepolia.voyage.online/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 24, textDecoration: 'none' }}>
                       VIEW ON STARKSCAN →
                     </a>
                   )}
@@ -289,24 +294,4 @@ export default function Drop() {
                   </p>
                 </div>
               </div>
-              <div style={{ marginTop: 32, textAlign: 'center', opacity: 0.1, userSelect: 'none', pointerEvents: 'none' }}>
-                <span style={{ fontFamily: "'Playfair Display',serif", fontWeight: 900, fontSize: 'clamp(36px,7vw,68px)', letterSpacing: '-0.02em', color: '#F0F0F8' }}>NULL_VAULT</span>
-              </div>
-            </div>
-          )}
-        </main>
-      </div>
-
-      <footer style={{ marginLeft: 240, padding: '24px 48px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-        <div style={{ display: 'flex', gap: 32 }}>
-          {['PRIVACY','STARKNET_NODE','RESOURCES'].map(l => <a key={l} href="#" style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#4A4A5A', textDecoration: 'none' }}>{l}</a>)}
-        </div>
-        <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#4A4A5A' }}>© 2025 NULLPAY. PRECISION_LEDGER_ENCRYPTED.</span>
-      </footer>
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-      `}</style>
-    </div>
-  )
-}
+         
