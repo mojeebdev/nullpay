@@ -41,7 +41,8 @@ export async function POST(req: NextRequest) {
     'Content-Type': 'application/json',
     'privy-app-id': appId,
     'privy-authorization-signature': `t=${timestamp},s=${signature}`,
-    'origin': 'https://nullpay.blindspotlab.xyz',  // ← add here
+    'origin': 'https://nullpay.blindspotlab.xyz',  
+    'Authorization': 'Basic ' + Buffer.from(`${appId}:${appSecret}`).toString('base64'), 
      },
     body: requestBody,
     })
