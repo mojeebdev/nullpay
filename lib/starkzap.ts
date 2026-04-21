@@ -4,7 +4,6 @@ import type { Address } from 'starkzap'
 const NETWORK = (process.env.NEXT_PUBLIC_STARKNET_NETWORK || 'sepolia') as 'mainnet' | 'sepolia'
 const IS_MAINNET = NETWORK === 'mainnet'
 
-
 const TOKENS = {
   mainnet: {
     USDC: { symbol: 'USDC', decimals: 6,  address: '0x033068f6539f8e6e6b131e6b2b814e6c34a5224bc66947c47dab9dfee93b35fb' },
@@ -39,7 +38,6 @@ export async function onboardWithPrivy(
   const sdk = getSDK()
   const { wallet } = await sdk.onboard({
     strategy: OnboardStrategy.Privy,
-    feeMode: 'sponsored',
     deploy: 'if_needed',
     privy: {
       resolve: async () => ({ walletId, publicKey, rawSign }),
@@ -76,7 +74,7 @@ export async function fundDrop(
     amount,
     sender: wallet.address as Address,
   })
-  const tx = await wallet.execute(calls, { feeMode: 'sponsored' })
+  const tx = await wallet.execute(calls, { feeMode: 'default' })
   await tx.wait()
   return tx.hash
 }
@@ -94,7 +92,7 @@ export async function claimDrop(
     to: wallet.address as Address,
     sender: wallet.address as Address,
   })
-  const tx = await wallet.execute(calls, { feeMode: 'sponsored' })
+  const tx = await wallet.execute(calls, { feeMode: 'default' })
   await tx.wait()
   return tx.hash
 }
