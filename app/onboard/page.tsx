@@ -14,10 +14,27 @@ export default function Onboard() {
 
   
   useEffect(() => {
-    if (ready && authenticated) {
+    if (!ready || !authenticated) return
+    if (!user) return
+
+    const hasWallet = user.linkedAccounts?.some((a: any) => a.type === 'wallet')
+    if (hasWallet) {
       router.push('/drop')
+      return
     }
-  }, [ready, authenticated, router])
+
+   
+    fetch('/api/wallets/create', { method: 'POST' })
+      .then(r => r.json())
+      .then(data => {
+        console.log('Wallet created:', data)
+        router.push('/drop')
+      })
+      .catch(err => {
+        console.error('Wallet creation failed:', err)
+        router.push('/drop')
+      })
+  }, [ready, authenticated, user, router])
 
   const handleLogin = async () => {
     setLoading(true)
@@ -45,7 +62,6 @@ export default function Onboard() {
           </h1>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {/* Single Privy login button — opens their modal */}
             <button
               onClick={handleLogin}
               disabled={loading || !ready}
@@ -107,10 +123,7 @@ export default function Onboard() {
       </main>
 
       <footer style={{ padding: '28px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-        <div style={{ display: 'flex', gap: 32 }}>
-
-        </div>
-
+        <div style={{ display: 'flex', gap: 32 }} />
       </footer>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
