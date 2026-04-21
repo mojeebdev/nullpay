@@ -24,11 +24,21 @@ export default function Dashboard() {
   const [copied, setCopied] = useState(false)
 
   const embeddedWallet = wallets.find(w => w.walletClientType === 'privy')
-  const walletAddress = embeddedWallet?.address || null
+  const walletAddress = embeddedWallet?.address ?? (user as any)?.wallet?.address ?? null
 
   useEffect(() => {
     if (ready && !authenticated) router.push('/onboard')
   }, [ready, authenticated, router])
+
+  // ✅ If wallet not loaded yet, reload once to pick up server-created wallet
+  useEffect(() => {
+    if (!walletAddress && ready && authenticated) {
+      const timer = setTimeout(() => {
+        window.location.reload()
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [walletAddress, ready, authenticated])
 
   // Fetch balances via raw JSON-RPC
   useEffect(() => {
@@ -49,7 +59,6 @@ export default function Dashboard() {
           : '0x0512feac6339ff7889822cb5aa2a86c848e9d392bb0e3e237c008674feed8343'
         const STRK = '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d'
 
-        // balanceOf selector
         const SELECTOR = '0x2e4263afad30923c891518314c3c95dbe830a16874e8abc5777a9a20b54c76e'
 
         const rpcCall = async (rpc: string, contract: string) => {
@@ -190,7 +199,6 @@ export default function Dashboard() {
 
           <div className="materialize" style={{ position: 'relative', zIndex: 10, maxWidth: 900 }}>
 
-            {/* Page title */}
             <div style={{ marginBottom: 40 }}>
               <h1 style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 'clamp(28px,4vw,40px)', color: '#F0F0F8', letterSpacing: '-0.02em', marginBottom: 8 }}>Dashboard</h1>
               <p style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#4A4A5A' }}>EMBEDDED_WALLET · BALANCES · ACTIVITY</p>
@@ -205,7 +213,9 @@ export default function Dashboard() {
                     <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#4A4A5A', display: 'block', marginBottom: 8 }}>EMBEDDED WALLET</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <code style={{ fontFamily: 'ui-monospace,monospace', fontSize: 13, color: '#F0F0F8', letterSpacing: '0.02em' }}>
-                        {walletAddress ? shortAddress(walletAddress) : '—'}
+                        {walletAddress ? shortAddress(walletAddress) : (
+                          <span style={{ color: '#4A4A5A', fontStyle: 'italic' }}>Loading wallet...</span>
+                        )}
                       </code>
                       {walletAddress && (
                         <button onClick={copyAddress} style={{ background: 'none', border: 'none', cursor: 'pointer', color: copied ? '#6C63FF' : '#4A4A5A', fontSize: 16, transition: 'color 0.2s' }}>
@@ -226,16 +236,18 @@ export default function Dashboard() {
                     )}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#6C63FF', animation: 'pulse 2s ease-in-out infinite' }} />
-                    <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6C63FF' }}>ACTIVE</span>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: walletAddress ? '#6C63FF' : '#4A4A5A', animation: walletAddress ? 'pulse 2s ease-in-out infinite' : 'none' }} />
+                    <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: walletAddress ? '#6C63FF' : '#4A4A5A' }}>
+                      {walletAddress ? 'ACTIVE' : 'INITIALIZING...'}
+                    </span>
                   </div>
                 </div>
 
                 {/* Balances */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   {[
-                    { label: 'USDC Balance', value: balance.usdc, symbol: 'USDC', decimals: 2 },
-                    { label: 'STRK Balance', value: balance.strk, symbol: 'STRK', decimals: 4 },
+                    { label: 'USDC Balance', value: balance.usdc, symbol: 'USDC' },
+                    { label: 'STRK Balance', value: balance.strk, symbol: 'STRK' },
                   ].map(b => (
                     <div key={b.symbol} style={{ background: '#14141C', border: '1px solid rgba(44,44,58,0.4)', borderRadius: 8, padding: '20px 20px' }}>
                       <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#4A4A5A', display: 'block', marginBottom: 10 }}>{b.label}</span>
@@ -267,18 +279,14 @@ export default function Dashboard() {
               ))}
             </div>
 
-            {/* Fund wallet CTA — only shows on sepolia */}
+            {/* Testnet CTA */}
             {process.env.NEXT_PUBLIC_STARKNET_NETWORK !== 'mainnet' && (
               <div style={{ background: '#0C0C12', border: '1px solid rgba(108,99,255,0.2)', borderRadius: 8, padding: '20px 24px', marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                 <div>
                   <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6C63FF', display: 'block', marginBottom: 4 }}>TESTNET MODE</span>
                   <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 13, color: '#8A8A9A', fontWeight: 300 }}>Need testnet STRK to pay gas? Use the faucet.</span>
                 </div>
-                <a
-                  href="https://starknet-faucet.vercel.app"
-                  target="_blank" rel="noopener noreferrer"
-                  style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#F0F0F8', background: '#6C63FF', padding: '12px 20px', borderRadius: 6, textDecoration: 'none', whiteSpace: 'nowrap' }}
-                >
+                <a href="https://starknet-faucet.vercel.app" target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#F0F0F8', background: '#6C63FF', padding: '12px 20px', borderRadius: 6, textDecoration: 'none', whiteSpace: 'nowrap' }}>
                   GET TESTNET STRK →
                 </a>
               </div>
@@ -291,16 +299,10 @@ export default function Dashboard() {
                 <Link href="/drop" style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#F0F0F8', background: '#6C63FF', padding: '14px 24px', borderRadius: 6, textDecoration: 'none' }}>
                   CREATE DROP →
                 </Link>
-                <button
-                  onClick={copyAddress}
-                  style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8A8A9A', background: 'transparent', border: '1px solid #2C2C3A', padding: '14px 24px', borderRadius: 6, cursor: 'pointer' }}
-                >
+                <button onClick={copyAddress} style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8A8A9A', background: 'transparent', border: '1px solid #2C2C3A', padding: '14px 24px', borderRadius: 6, cursor: 'pointer' }}>
                   {copied ? 'COPIED ✓' : 'COPY ADDRESS'}
                 </button>
-                <button
-                  onClick={logout}
-                  style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8A8A9A', background: 'transparent', border: '1px solid #2C2C3A', padding: '14px 24px', borderRadius: 6, cursor: 'pointer' }}
-                >
+                <button onClick={logout} style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8A8A9A', background: 'transparent', border: '1px solid #2C2C3A', padding: '14px 24px', borderRadius: 6, cursor: 'pointer' }}>
                   DISCONNECT
                 </button>
               </div>
