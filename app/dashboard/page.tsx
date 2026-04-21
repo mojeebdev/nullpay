@@ -14,6 +14,8 @@ const NAV = [
 
 interface Balance { usdc: string; strk: string; loading: boolean }
 
+const IS_MAINNET = process.env.NEXT_PUBLIC_STARKNET_NETWORK === 'mainnet'
+
 export default function Dashboard() {
   const router = useRouter()
   const { ready, authenticated, user, logout } = usePrivy()
@@ -42,6 +44,9 @@ export default function Dashboard() {
           : '0x0512feac6339ff7889822cb5aa2a86c848e9d392bb0e3e237c008674feed8343'
         const STRK = '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d'
 
+        // balanceOf(account) selector — keccak256('balanceOf')
+        const BALANCE_OF = '0x2e4263afad30923c891518314c3c95dbe830a16874e8abc5777a9a20b54c76e'
+
         const call = async (contract: string, decimals: number) => {
           const res = await fetch(rpc, {
             method: 'POST',
@@ -51,16 +56,23 @@ export default function Dashboard() {
               method: 'starknet_call',
               params: [{
                 contract_address: contract,
-                entry_point_selector: '0x2e4263afad30923c891518314c3c95dbe830a16874e8abc5777a9a20b54c76e',
+                entry_point_selector: BALANCE_OF,
                 calldata: [walletAddress],
-              }, 'latest'],
+              }, 'pending'],
             }),
           })
           const data = await res.json()
-          if (data.result?.[0]) {
-            const raw = BigInt(data.result[0])
-            const val = Number(raw) / Math.pow(10, decimals)
-            return val.toFixed(decimals === 6 ? 2 : 4)
+          if (data.error) {
+            console.error('RPC error:', data.error)
+            return '0.00'
+          }
+          if (data.result && data.result.length >= 2) {
+            // ERC20 balanceOf returns uint256 as [low, high]
+            const low  = BigInt(data.result[0])
+            const high = BigInt(data.result[1])
+            const raw  = low + (high * (BigInt(2) ** BigInt(128)))
+            const val  = Number(raw) / Math.pow(10, decimals)
+            return val.toLocaleString(undefined, { minimumFractionDigits: decimals === 6 ? 2 : 4, maximumFractionDigits: decimals === 6 ? 2 : 4 })
           }
           return '0.00'
         }
@@ -187,7 +199,7 @@ export default function Dashboard() {
                     {walletAddress && (
                       <div style={{ marginTop: 6 }}>
                         <a
-                          href={`https://${process.env.NEXT_PUBLIC_STARKNET_NETWORK === 'mainnet' ? '' : 'sepolia.'}starkscan.co/contract/${walletAddress}`}
+                          href={`https://${IS_MAINNET ? '' : 'sepolia.'}starkscan.co/contract/${walletAddress}`}
                           target="_blank" rel="noopener noreferrer"
                           style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6C63FF', textDecoration: 'none' }}
                         >
@@ -282,7 +294,7 @@ export default function Dashboard() {
       </div>
 
       <footer style={{ marginLeft: 240, padding: '20px 48px', display: 'flex', justifyContent: 'center' }}>
-        <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#4A4A5A' }}>© 2026 NULLPAY. PRECISION_LEDGER_ENCRYPTED.</span>
+        <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#4A4A5A' }}>© 2025 NULLPAY. PRECISION_LEDGER_ENCRYPTED.</span>
       </footer>
 
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }`}</style>
