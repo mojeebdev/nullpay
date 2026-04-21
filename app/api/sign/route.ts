@@ -13,18 +13,24 @@ export async function POST(req: NextRequest) {
     const appId     = process.env.PRIVY_APP_ID!
     const appSecret = process.env.PRIVY_APP_SECRET!
 
-    const url = `https://auth.privy.io/api/v1/wallets/${walletId}/rpc`
+    // Debug: confirm env vars are loaded
+    console.log('appId loaded:', !!appId)
+    console.log('appSecret loaded:', !!appSecret)
+    console.log('appSecret preview:', appSecret?.slice(0, 6))
 
+    const path        = `/api/v1/wallets/${walletId}/rpc`
+    const url         = `https://auth.privy.io${path}`
+    const method      = 'POST'
     const requestBody = JSON.stringify({
       method: 'secp256k1_sign',
       params: { hash },
     })
 
-    // Generate authorization signature
     const timestamp = Math.floor(Date.now() / 1000).toString()
-    const method = 'POST'
-    const path = `/api/v1/wallets/${walletId}/rpc`
-    const payload = `${timestamp}:${method}:${path}:${requestBody}`
+    const payload   = `${timestamp}:${method}:${path}:${requestBody}`
+
+    console.log('Signing payload:', payload)
+
     const signature = createHmac('sha256', appSecret)
       .update(payload)
       .digest('hex')
@@ -33,7 +39,7 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + Buffer.from(`${appId}:${appSecret}`).toString('base64'),
+        // ✅ Only use ONE auth method — remove Basic auth
         'privy-app-id': appId,
         'privy-authorization-signature': `t=${timestamp},s=${signature}`,
       },
@@ -44,10 +50,15 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       console.error('Privy sign error:', data)
-      return NextResponse.json({ error: data.message || data.error || 'Signing failed' }, { status: res.status })
+      return NextResponse.json(
+        { error: data.message || data.error || 'Signing failed' },
+        { status: res.status }
+      )
     }
 
-    return NextResponse.json({ signature: data.data?.signature || data.signature })
+    return NextResponse.json({
+      signature: data.data?.signature || data.signature,
+    })
   } catch (err: any) {
     console.error('Sign route error:', err)
     return NextResponse.json({ error: err.message }, { status: 500 })
