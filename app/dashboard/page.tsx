@@ -30,13 +30,16 @@ export default function Dashboard() {
     if (ready && !authenticated) router.push('/onboard')
   }, [ready, authenticated, router])
 
-  // ✅ If wallet not loaded yet, reload once to pick up server-created wallet
+  // ✅ Reload once if wallet not loaded yet
   useEffect(() => {
     if (!walletAddress && ready && authenticated) {
-      const timer = setTimeout(() => {
-        window.location.reload()
-      }, 2000)
-      return () => clearTimeout(timer)
+      const hasReloaded = sessionStorage.getItem('wallet_reload')
+      if (!hasReloaded) {
+        sessionStorage.setItem('wallet_reload', '1')
+        setTimeout(() => window.location.reload(), 2000)
+      }
+    } else if (walletAddress) {
+      sessionStorage.removeItem('wallet_reload')
     }
   }, [walletAddress, ready, authenticated])
 
@@ -161,7 +164,7 @@ export default function Dashboard() {
                   {user?.google?.name || user?.email?.address?.split('@')[0] || 'NULL_ID'}
                 </div>
                 <div style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#4A4A5A' }}>
-                  {process.env.NEXT_PUBLIC_STARKNET_NETWORK === 'mainnet' ? 'STARKNET_MAINNET' : 'STARKNET_SEPOLIA'}
+                  {IS_MAINNET ? 'STARKNET_MAINNET' : 'STARKNET_SEPOLIA'}
                 </div>
               </div>
             </div>
@@ -214,7 +217,7 @@ export default function Dashboard() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <code style={{ fontFamily: 'ui-monospace,monospace', fontSize: 13, color: '#F0F0F8', letterSpacing: '0.02em' }}>
                         {walletAddress ? shortAddress(walletAddress) : (
-                          <span style={{ color: '#4A4A5A', fontStyle: 'italic' }}>Loading wallet...</span>
+                          <span style={{ color: '#4A4A5A', fontStyle: 'italic', fontFamily: "'Lato',sans-serif" }}>Initializing wallet...</span>
                         )}
                       </code>
                       {walletAddress && (
@@ -280,7 +283,7 @@ export default function Dashboard() {
             </div>
 
             {/* Testnet CTA */}
-            {process.env.NEXT_PUBLIC_STARKNET_NETWORK !== 'mainnet' && (
+            {!IS_MAINNET && (
               <div style={{ background: '#0C0C12', border: '1px solid rgba(108,99,255,0.2)', borderRadius: 8, padding: '20px 24px', marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                 <div>
                   <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6C63FF', display: 'block', marginBottom: 4 }}>TESTNET MODE</span>

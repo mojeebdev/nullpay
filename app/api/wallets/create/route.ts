@@ -4,6 +4,9 @@ import crypto from 'crypto'
 
 export async function POST(req: NextRequest) {
   try {
+    const body = await req.json()
+    const { userId } = body  // ✅ receive userId from client
+
     const appId     = process.env.PRIVY_APP_ID!
     const appSecret = process.env.PRIVY_APP_SECRET!
     const authKey   = process.env.PRIVY_AUTHORIZATION_KEY!
@@ -13,6 +16,7 @@ export async function POST(req: NextRequest) {
     const requestBody = {
       chain_type: 'ethereum',
       owner_id: authKeyId,
+      user_id: userId,  // ✅ link wallet to user
     }
 
     const signaturePayload = {

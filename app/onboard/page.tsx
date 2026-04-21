@@ -12,7 +12,6 @@ export default function Onboard() {
 
   useEffect(() => { setTimeout(() => setMounted(true), 60) }, [])
 
-  
   useEffect(() => {
     if (!ready || !authenticated) return
     if (!user) return
@@ -23,8 +22,11 @@ export default function Onboard() {
       return
     }
 
-   
-    fetch('/api/wallets/create', { method: 'POST' })
+    fetch('/api/wallets/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id }),
+    })
       .then(r => r.json())
       .then(data => {
         console.log('Wallet created:', data)
