@@ -35,9 +35,11 @@ export async function onboardWithPrivy(walletId: string, publicKey: string) {
   const appUrl = typeof window !== 'undefined'
     ? window.location.origin
     : process.env.NEXT_PUBLIC_APP_URL!
+  
   const { wallet } = await sdk.onboard({
     strategy: OnboardStrategy.Privy,
     deploy: 'if_needed',
+    // Removed feeMode: 'sponsored' since users pay for themselves
     privy: {
       resolve: async () => ({
         walletId,
@@ -77,6 +79,7 @@ export async function fundDrop(
     amount,
     sender: wallet.address as Address,
   })
+  // 'default' feeMode means the wallet address pays for the gas
   const tx = await wallet.execute(calls, { feeMode: 'default' })
   await tx.wait()
   return tx.hash
@@ -95,6 +98,7 @@ export async function claimDrop(
     to: wallet.address as Address,
     sender: wallet.address as Address,
   })
+  // User pays gas from their balance
   const tx = await wallet.execute(calls, { feeMode: 'default' })
   await tx.wait()
   return tx.hash
