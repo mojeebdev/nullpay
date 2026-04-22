@@ -6,7 +6,6 @@ export async function POST(req: NextRequest) {
   try {
     const { walletId, hash } = await req.json()
 
-    
     if (!walletId) {
       return NextResponse.json(
         { error: 'walletId is required' },
@@ -25,8 +24,8 @@ export async function POST(req: NextRequest) {
     const appSecret = process.env.PRIVY_APP_SECRET!
     const authKey = process.env.PRIVY_AUTHORIZATION_KEY!
 
-    // ✅ FIXED: Correct template literal - ${walletId} not {walletId}
-    const url = `https://privy.io/wallets/${walletId}/rpc`
+    // ✅ FIXED: Use correct Privy API endpoint
+    const url = `https://api.privy.io/wallets/${walletId}/rpc`
     const requestBody = { method: 'secp256k1_sign', params: { hash } }
 
     const serialized = canonicalize({
@@ -41,9 +40,14 @@ export async function POST(req: NextRequest) {
       throw new Error('Failed to canonicalize request')
     }
 
+    console.log('📝 Signing request for wallet:', walletId)
+    console.log('🔐 URL:', url)
+
     const privateKeyPem = `-----BEGIN PRIVATE KEY-----\n${authKey.replace('wallet-auth:', '')}\n-----END PRIVATE KEY-----`
     const privateKey = crypto.createPrivateKey({ key: privateKeyPem, format: 'pem' })
     const signature = crypto.sign('sha256', Buffer.from(serialized), privateKey).toString('base64')
+
+    console.log('✅ Signature created, sending to Privy...')
 
     const res = await fetch(url, {
       method: 'POST',
@@ -55,6 +59,17 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify(requestBody),
     })
+
+    // ✅ Check if response is JSON before parsing
+    const contentType = res.headers.get('content-type')
+    if (!contentType?.includes('application/json')) {
+      const text = await res.text()
+      console.error('Non-JSON response from Privy:', res.status, text)
+      return NextResponse.json(
+        { error: `Privy API error: ${res.status}` },
+        { status: res.status }
+      )
+    }
 
     if (!res.ok) {
       const errData = await res.json()
