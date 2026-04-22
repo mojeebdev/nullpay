@@ -17,6 +17,7 @@ export async function POST(req: NextRequest) {
 
     const appId     = process.env.PRIVY_APP_ID!
     const appSecret = process.env.PRIVY_APP_SECRET!
+    const authKeyId = process.env.PRIVY_AUTHORIZATION_KEY_ID!
 
     console.log('Creating wallet for userId:', userId)
 
@@ -29,7 +30,10 @@ export async function POST(req: NextRequest) {
         'origin': 'https://nullpay.blindspotlab.xyz',
       },
       body: JSON.stringify({
-        wallets: [{ chain_type: 'ethereum' }]
+        wallets: [{ 
+          chain_type: 'ethereum',
+          owner_id: process.env.PRIVY_AUTHORIZATION_KEY_ID,
+        }],
       }),
     })
 
@@ -47,3 +51,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
+
+
+
+
+
