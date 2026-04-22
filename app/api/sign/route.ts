@@ -5,11 +5,28 @@ import crypto from 'crypto'
 export async function POST(req: NextRequest) {
   try {
     const { walletId, hash } = await req.json()
+
+    
+    if (!walletId) {
+      return NextResponse.json(
+        { error: 'walletId is required' },
+        { status: 400 }
+      )
+    }
+
+    if (!hash) {
+      return NextResponse.json(
+        { error: 'hash is required' },
+        { status: 400 }
+      )
+    }
+
     const appId = process.env.PRIVY_APP_ID!
     const appSecret = process.env.PRIVY_APP_SECRET!
-    const authKey = process.env.PRIVY_AUTHORIZATION_KEY! 
+    const authKey = process.env.PRIVY_AUTHORIZATION_KEY!
 
-    const url = `https://privy.io{walletId}/rpc`
+    // ✅ FIXED: Correct template literal - ${walletId} not {walletId}
+    const url = `https://privy.io/wallets/${walletId}/rpc`
     const requestBody = { method: 'secp256k1_sign', params: { hash } }
 
     const serialized = canonicalize({
@@ -19,6 +36,10 @@ export async function POST(req: NextRequest) {
       body: requestBody,
       headers: { 'privy-app-id': appId },
     })!
+
+    if (!serialized) {
+      throw new Error('Failed to canonicalize request')
+    }
 
     const privateKeyPem = `-----BEGIN PRIVATE KEY-----\n${authKey.replace('wallet-auth:', '')}\n-----END PRIVATE KEY-----`
     const privateKey = crypto.createPrivateKey({ key: privateKeyPem, format: 'pem' })
@@ -35,9 +56,30 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(requestBody),
     })
 
+    if (!res.ok) {
+      const errData = await res.json()
+      console.error('Privy sign error:', res.status, errData)
+      return NextResponse.json(
+        { error: errData.message || 'Failed to sign with Privy' },
+        { status: res.status }
+      )
+    }
+
     const data = await res.json()
-    return NextResponse.json({ signature: data.data?.signature || data.signature })
+    const signatureResult = data.data?.signature || data.signature
+
+    if (!signatureResult) {
+      throw new Error('No signature in response')
+    }
+
+    console.log('✅ Transaction signed successfully')
+    return NextResponse.json({ signature: signatureResult })
+
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('Sign error:', err.message)
+    return NextResponse.json(
+      { error: err.message || 'Failed to sign transaction' },
+      { status: 500 }
+    )
   }
 }
