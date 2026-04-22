@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
     const authHeader = 'Basic ' + Buffer.from(`${appId}:${appSecret}`).toString('base64')
 
-    // ✅ FIXED: removed `owner` field — ownership is implicit via the userId in the URL
+    
     const payload = JSON.stringify({
       wallets: [{ chain_type: 'ethereum' }]
     })
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
           'Content-Type': 'application/json',
           'Authorization': authHeader,
           'privy-app-id': appId,
-          'Content-Length': Buffer.byteLength(payload), // ✅ FIXED: bytes not chars
+          'Content-Length': Buffer.byteLength(payload), 
         },
       }
 

@@ -24,8 +24,8 @@ export async function POST(req: NextRequest) {
     const appSecret = process.env.PRIVY_APP_SECRET!
     const authKey = process.env.PRIVY_AUTHORIZATION_KEY!
 
-    // ✅ FIXED: Use correct Privy API endpoint
-    const url = `https://api.privy.io/wallets/${walletId}/rpc`
+   
+    const url = `https://api.privy.io/wallets/${walletId}/rpc` 
     const requestBody = { method: 'secp256k1_sign', params: { hash } }
 
     const serialized = canonicalize({
