@@ -5,7 +5,7 @@ import crypto from 'crypto'
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { userId } = body  // ✅ receive userId from client
+    const { userId } = body
 
     const appId     = process.env.PRIVY_APP_ID!
     const appSecret = process.env.PRIVY_APP_SECRET!
@@ -16,7 +16,6 @@ export async function POST(req: NextRequest) {
     const requestBody = {
       chain_type: 'ethereum',
       owner_id: authKeyId,
-      user_id: userId,  // ✅ link wallet to user
     }
 
     const signaturePayload = {
@@ -34,6 +33,7 @@ export async function POST(req: NextRequest) {
     const sigBuffer     = crypto.sign('sha256', Buffer.from(serialized), privateKey)
     const signature     = sigBuffer.toString('base64')
 
+    // Step 1: Create wallet
     const res = await fetch(url, {
       method: 'POST',
       headers: {
@@ -47,13 +47,32 @@ export async function POST(req: NextRequest) {
     })
 
     const data = await res.json()
+    console.log('Wallet create response:', data)
 
     if (!res.ok) {
       console.error('Wallet create error:', data)
       return NextResponse.json({ error: data.error || 'Failed to create wallet' }, { status: res.status })
     }
 
-    return NextResponse.json({ walletId: data.id, address: data.address })
+    const walletId = data.id
+
+    // Step 2: Link wallet to user
+    if (userId) {
+      const linkRes = await fetch(`https://api.privy.io/v1/users/${userId}/wallets`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Basic ' + Buffer.from(`${appId}:${appSecret}`).toString('base64'),
+          'privy-app-id': appId,
+          'origin': 'https://nullpay.blindspotlab.xyz',
+        },
+        body: JSON.stringify({ wallet_id: walletId }),
+      })
+      const linkData = await linkRes.json()
+      console.log('Wallet link response:', linkData)
+    }
+
+    return NextResponse.json({ walletId, address: data.address })
   } catch (err: any) {
     console.error('Wallet create route error:', err)
     return NextResponse.json({ error: err.message }, { status: 500 })
