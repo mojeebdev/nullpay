@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     const authKey = process.env.PRIVY_AUTHORIZATION_KEY!
 
    
-    const url = `https://api.privy.io/wallets/${walletId}/rpc` 
+    const url = `https://api.privy.io/v1/wallets/${walletId}/rpc`
     const requestBody = { method: 'secp256k1_sign', params: { hash } }
 
     const serialized = canonicalize({
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(requestBody),
     })
 
-    // ✅ Check if response is JSON before parsing
+
     const contentType = res.headers.get('content-type')
     if (!contentType?.includes('application/json')) {
       const text = await res.text()
