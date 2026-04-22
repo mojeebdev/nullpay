@@ -18,7 +18,8 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         wallets: [{ 
           chain_type: 'ethereum',
-          owner: { address: authKeyAddress } 
+           owner: {
+            public_key: process.env.PRIVY_AUTHORIZATION_KEY_ID}
         }],
       }),
     })
