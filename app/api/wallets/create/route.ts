@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
     console.log('Creating wallet for userId:', userId)
 
-    const res = await fetch(`https://api.privy.io/v1/users/${userId}/pregenerate_wallets`, {
+    const res = await fetch(`https://api.privy.io/v1/users/${userId}/wallets`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -34,10 +34,10 @@ export async function POST(req: NextRequest) {
     })
 
     const data = await res.json()
-    console.log('Pregenerate response:', data)
+    console.log('Wallet create response:', data)
 
     if (!res.ok) {
-      console.error('Pregenerate error:', data)
+      console.error('Wallet create error:', data)
       return NextResponse.json({ error: data.error || 'Failed to create wallet' }, { status: res.status })
     }
 
