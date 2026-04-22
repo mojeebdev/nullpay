@@ -25,11 +25,11 @@ export async function POST(req: NextRequest) {
 
     const authHeader = 'Basic ' + Buffer.from(`${appId}:${appSecret}`).toString('base64')
 
+    // ✅ FIXED: removed `owner` field — ownership is implicit via the userId in the URL
     const payload = JSON.stringify({
-      wallets: [{ chain_type: 'ethereum', owner: { user_id: userId } }]
+      wallets: [{ chain_type: 'ethereum' }]
     })
 
-  
     const result = await new Promise<{ status: number; data: any }>((resolve, reject) => {
       const options = {
         hostname: 'api.privy.io',
@@ -39,13 +39,13 @@ export async function POST(req: NextRequest) {
           'Content-Type': 'application/json',
           'Authorization': authHeader,
           'privy-app-id': appId,
-          'Content-Length': payload.length,
+          'Content-Length': Buffer.byteLength(payload), // ✅ FIXED: bytes not chars
         },
       }
 
       const request = https.request(options, (res) => {
         let data = ''
-        
+
         res.on('data', (chunk) => {
           data += chunk
         })
@@ -69,7 +69,6 @@ export async function POST(req: NextRequest) {
       request.end()
     })
 
-    
     if (result.status >= 400) {
       console.error('Privy API error:', result.status, result.data)
       return NextResponse.json(
