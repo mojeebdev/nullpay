@@ -24,7 +24,10 @@ export async function POST(req: NextRequest) {
     const appSecret = process.env.PRIVY_APP_SECRET!
     const authKey = process.env.PRIVY_AUTHORIZATION_KEY!
 
-   
+    console.log('🔑 Key starts with wallet-auth:', authKey.startsWith('wallet-auth:'))
+    console.log('🔑 Key length:', authKey.length)
+    console.log('🔑 Raw key (first 40):', authKey.substring(0, 40))
+
     const url = `https://api.privy.io/v1/wallets/${walletId}/rpc`
     const requestBody = { method: 'secp256k1_sign', params: { hash } }
 
@@ -43,7 +46,11 @@ export async function POST(req: NextRequest) {
     console.log('📝 Signing request for wallet:', walletId)
     console.log('🔐 URL:', url)
 
-    const privateKeyPem = `-----BEGIN PRIVATE KEY-----\n${authKey.replace('wallet-auth:', '')}\n-----END PRIVATE KEY-----`
+    
+    const rawKey = authKey.replace('wallet-auth:', '').replace(/\s+/g, '')
+    const chunked = rawKey.match(/.{1,64}/g)!.join('\n')
+    const privateKeyPem = `-----BEGIN PRIVATE KEY-----\n${chunked}\n-----END PRIVATE KEY-----`
+
     const privateKey = crypto.createPrivateKey({ key: privateKeyPem, format: 'pem' })
     const signature = crypto.sign('sha256', Buffer.from(serialized), privateKey).toString('base64')
 
@@ -59,7 +66,6 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify(requestBody),
     })
-
 
     const contentType = res.headers.get('content-type')
     if (!contentType?.includes('application/json')) {
