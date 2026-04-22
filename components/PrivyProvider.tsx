@@ -1,31 +1,6 @@
-// Updated PrivyProvider.tsx to enable embedded wallet creation on login
+'use client'
+import { PrivyProvider } from '@privy-io/react-auth'
 
-<<<<<<< Updated upstream
-import React from 'react';
-import { usePrivy } from 'privy-react';
-
-const PrivyProvider = () => {
-    const { createWallet } = usePrivy();
-
-    const handleLogin = async () => {
-        try {
-            // Create an embedded wallet on login
-            await createWallet();
-            console.log('Embedded wallet created successfully!');
-        } catch (error) {
-            console.error('Error creating embedded wallet:', error);
-        }
-    };
-
-    return (
-        <div>
-            <button onClick={handleLogin}>Login and Create Wallet</button>
-        </div>
-    );
-};
-
-export default PrivyProvider;
-=======
 export default function NullPayPrivyProvider({ children }: { children: React.ReactNode }) {
   return (
     <PrivyProvider
@@ -39,7 +14,7 @@ export default function NullPayPrivyProvider({ children }: { children: React.Rea
         },
         loginMethods: ['email', 'google'],
         embeddedWallets: {
-          ethereum: { createOnLogin: 'users' }, // ✅ FIXED: Create wallet on signup
+          ethereum: { createOnLogin: 'all-users' }, 
         },
       }}
     >
@@ -47,4 +22,4 @@ export default function NullPayPrivyProvider({ children }: { children: React.Rea
     </PrivyProvider>
   )
 }
->>>>>>> Stashed changes
+
