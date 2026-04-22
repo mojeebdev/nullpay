@@ -22,6 +22,14 @@ export default function Onboard() {
       return
     }
 
+    if (!user?.id) {
+      console.error('No user ID available')
+      router.push('/drop')
+      return
+    }
+
+    console.log('Creating wallet for user:', user.id)
+
     fetch('/api/wallets/create', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

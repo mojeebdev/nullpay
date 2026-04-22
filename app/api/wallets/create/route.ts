@@ -2,11 +2,23 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { userId } = body
+    let userId: string | undefined
+
+    try {
+      const body = await req.json()
+      userId = body?.userId
+    } catch {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+    }
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
+    }
 
     const appId     = process.env.PRIVY_APP_ID!
     const appSecret = process.env.PRIVY_APP_SECRET!
+
+    console.log('Creating wallet for userId:', userId)
 
     const res = await fetch(`https://api.privy.io/v1/users/${userId}/pregenerate_wallets`, {
       method: 'POST',
@@ -26,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) {
       console.error('Pregenerate error:', data)
-      return NextResponse.json({ error: data.error || 'Failed' }, { status: res.status })
+      return NextResponse.json({ error: data.error || 'Failed to create wallet' }, { status: res.status })
     }
 
     return NextResponse.json({ success: true, data })
