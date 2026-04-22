@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
         wallets: [{ 
           chain_type: 'ethereum',
            owner: {
-            public_key: process.env.PRIVY_AUTHORIZATION_KEY_ID}
+            user_id: userId}
         }],
       }),
     })
