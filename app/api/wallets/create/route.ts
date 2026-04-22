@@ -4,23 +4,27 @@ export async function POST(req: NextRequest) {
   try {
     const { userId } = await req.json()
     
-    const appId     = process.env.PRIVY_APP_ID!
-    const appSecret = process.env.PRIVY_APP_SECRET!
-    const authKeyAddress = process.env.PRIVY_AUTHORIZATION_KEY_ID!
+    // 1. Validation
+    if (!userId) {
+      return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
+    }
 
-    // This is the object we are sending. 
-    // Notice: NO 'owner_id' here. We use 'owner' with 'address'.
+    const appId = process.env.PRIVY_APP_ID!
+    const appSecret = process.env.PRIVY_APP_SECRET!
+
+    
     const payload = {
       wallets: [{ 
         chain_type: 'ethereum',
         owner: {
-          address: authKeyAddress 
+          user_id: userId 
         }
       }],
     }
 
-    console.log('SENDING TO PRIVY:', JSON.stringify(payload, null, 2))
+    console.log('Final Bounty Payload:', JSON.stringify(payload))
 
+    // 3. The Fetch Call
     const res = await fetch(`https://privy.io{userId}/wallets`, {
       method: 'POST',
       headers: {
@@ -32,15 +36,17 @@ export async function POST(req: NextRequest) {
     })
 
     const data = await res.json()
-    console.log('PRIVY API RESPONSE:', data)
 
+    // 4. Handle Response
     if (!res.ok) {
+      console.error('Privy API Error:', data)
       return NextResponse.json(data, { status: res.status })
     }
 
     return NextResponse.json({ success: true, data })
+
   } catch (err: any) {
-    console.error('SERVER CRASH:', err.message)
+    console.error('Final Route Crash:', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
