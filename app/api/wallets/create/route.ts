@@ -3,50 +3,47 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(req: NextRequest) {
   try {
     const { userId } = await req.json()
-    
-    // 1. Validation
-    if (!userId) {
-      return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
-    }
+    if (!userId) return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
 
     const appId = process.env.PRIVY_APP_ID!
     const appSecret = process.env.PRIVY_APP_SECRET!
-
     
+    // Construct Auth header once
+    const authHeader = 'Basic ' + Buffer.from(`${appId}:${appSecret}`).toString('base64');
+
     const payload = {
       wallets: [{ 
         chain_type: 'ethereum',
-        owner: {
-          user_id: userId 
-        }
+        owner: { user_id: userId } 
       }],
-    }
+    };
 
-    console.log('Final Bounty Payload:', JSON.stringify(payload))
-
-    // 3. The Fetch Call
+    // Use a try-catch specifically around the fetch to catch network errors
     const res = await fetch(`https://privy.io{userId}/wallets`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + Buffer.from(`${appId}:${appSecret}`).toString('base64'),
+        'Authorization': authHeader,
         'privy-app-id': appId,
       },
       body: JSON.stringify(payload),
-    })
+      // Adding keepalive can sometimes help with 'fetch failed' in serverless
+      keepalive: true, 
+    }).catch(err => {
+        throw new Error(`Network/Fetch Error: ${err.message}`);
+    });
 
-    const data = await res.json()
-
-    // 4. Handle Response
+    const data = await res.json();
+    
     if (!res.ok) {
-      console.error('Privy API Error:', data)
-      return NextResponse.json(data, { status: res.status })
+      console.error('Privy Error Response:', data);
+      return NextResponse.json(data, { status: res.status });
     }
 
-    return NextResponse.json({ success: true, data })
+    return NextResponse.json({ success: true, data });
 
   } catch (err: any) {
-    console.error('Final Route Crash:', err.message)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.error('CRITICAL ERROR:', err.message);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
