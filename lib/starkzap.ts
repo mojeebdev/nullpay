@@ -1,7 +1,13 @@
-import { OnboardStrategy, accountPresets, TongoConfidential, Amount, Address } from 'starkzap'
+import { OnboardStrategy, accountPresets, TongoConfidential, Amount, Address, sepoliaTokens } from 'starkzap'
 import { getSDK } from './sdk'
 
 const TONGO_CONTRACT = process.env.NEXT_PUBLIC_TONGO_CONTRACT! as Address
+
+function getToken(symbol: string) {
+  const token = sepoliaTokens[symbol as keyof typeof sepoliaTokens]
+  if (!token) throw new Error(`Unsupported token: ${symbol}`)
+  return token
+}
 
 export async function onboardWithPrivy(
   privyWalletId: string,
@@ -44,10 +50,11 @@ export async function fundDrop(
   token: string,
   amount: string
 ): Promise<string> {
+  const tokenPreset = getToken(token)
   const tx = await wallet
     .tx()
     .confidentialFund(tongo, {
-      amount: Amount.parse(amount, token),
+      amount: Amount.parse(amount, tokenPreset),
       sender: wallet.address,
     })
     .send()
@@ -62,10 +69,11 @@ export async function claimDrop(
   token: string,
   amount: string
 ): Promise<string> {
+  const tokenPreset = getToken(token)
   const tx = await wallet
     .tx()
     .confidentialWithdraw(tongo, {
-      amount: Amount.parse(amount, token),
+      amount: Amount.parse(amount, tokenPreset),
       to: wallet.address,
       sender: wallet.address,
     })
