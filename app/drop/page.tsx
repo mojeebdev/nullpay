@@ -8,7 +8,7 @@ import { createDrop } from '@/lib/drops'
 import { onboardWithPrivy, getTongoInstance, fundDrop } from '@/lib/starkzap'
 
 const NAV = [
-  { icon: '⊞', label: 'DASHBOARD', active: false },
+  { icon: '⊞', label: 'DASHBOARD', active: true },
   { icon: '◈', label: 'PAYMENTS',  active: true  },
   { icon: '◉', label: 'SECURITY',  active: false },
   { icon: '▣', label: 'VAULT',     active: false },
