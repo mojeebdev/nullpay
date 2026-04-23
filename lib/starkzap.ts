@@ -1,7 +1,7 @@
-import { OnboardStrategy, accountPresets, TongoConfidential, Amount } from 'starkzap'
+import { OnboardStrategy, accountPresets, TongoConfidential, Amount, Address } from 'starkzap'
 import { getSDK } from './sdk'
 
-const TONGO_CONTRACT = process.env.NEXT_PUBLIC_TONGO_CONTRACT!
+const TONGO_CONTRACT = process.env.NEXT_PUBLIC_TONGO_CONTRACT! as Address
 
 export async function onboardWithPrivy(
   privyWalletId: string,
