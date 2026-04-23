@@ -20,8 +20,8 @@ export default function Dashboard() {
   const router = useRouter()
   const { ready, authenticated, user, logout } = usePrivy()
 
-  const [balance, setBalance]       = useState<Balance>({ usdc: '—', strk: '—', loading: true })
-  const [copied, setCopied]         = useState(false)
+  const [balance, setBalance]             = useState<Balance>({ usdc: '—', strk: '—', loading: true })
+  const [copied, setCopied]               = useState(false)
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [walletConnecting, setWalletConnecting] = useState(false)
 
@@ -29,19 +29,22 @@ export default function Dashboard() {
     if (ready && !authenticated) router.push('/onboard')
   }, [ready, authenticated, router])
 
-  // Read address from injected Starknet wallet (ArgentX / Braavos)
+  // Auto-connect on mount using enable() only
   useEffect(() => {
+    if (!ready || !authenticated) return
+
     const connectInjected = async () => {
       const starknet = (window as any).starknet
       if (!starknet) return
 
       try {
         setWalletConnecting(true)
-        await starknet.enable()
-        const accounts: string[] = await starknet.request({ type: 'wallet_requestAccounts' })
-        if (accounts && accounts[0]) {
-          setWalletAddress(accounts[0])
-        }
+        // enable() is the correct ArgentX/Braavos method — returns accounts array
+        const accounts = await starknet.enable()
+        const address = Array.isArray(accounts) && accounts[0]
+          ? accounts[0]
+          : starknet.selectedAddress || starknet.account?.address || null
+        if (address) setWalletAddress(address)
       } catch (err) {
         console.error('Failed to connect injected wallet:', err)
       } finally {
@@ -49,12 +52,10 @@ export default function Dashboard() {
       }
     }
 
-    if (ready && authenticated) {
-      connectInjected()
-    }
+    connectInjected()
   }, [ready, authenticated])
 
-  // Listen for account changes in ArgentX / Braavos
+  // Listen for account changes
   useEffect(() => {
     const starknet = (window as any).starknet
     if (!starknet) return
@@ -138,15 +139,6 @@ export default function Dashboard() {
     fetchBalances()
   }, [walletAddress])
 
-  const copyAddress = async () => {
-    if (!walletAddress) return
-    await navigator.clipboard.writeText(walletAddress)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  const shortAddress = (addr: string) => `${addr.slice(0, 8)}...${addr.slice(-6)}`
-
   const connectWallet = async () => {
     const starknet = (window as any).starknet
     if (!starknet) {
@@ -155,15 +147,26 @@ export default function Dashboard() {
     }
     try {
       setWalletConnecting(true)
-      await starknet.enable()
-      const accounts: string[] = await starknet.request({ type: 'wallet_requestAccounts' })
-      if (accounts?.[0]) setWalletAddress(accounts[0])
+      const accounts = await starknet.enable()
+      const address = Array.isArray(accounts) && accounts[0]
+        ? accounts[0]
+        : starknet.selectedAddress || starknet.account?.address || null
+      if (address) setWalletAddress(address)
     } catch (err) {
       console.error('Connect failed:', err)
     } finally {
       setWalletConnecting(false)
     }
   }
+
+  const copyAddress = async () => {
+    if (!walletAddress) return
+    await navigator.clipboard.writeText(walletAddress)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const shortAddress = (addr: string) => `${addr.slice(0, 8)}...${addr.slice(-6)}`
 
   if (!ready || !authenticated) return (
     <div style={{ minHeight: '100vh', background: '#050508', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -174,7 +177,6 @@ export default function Dashboard() {
   return (
     <div style={{ minHeight: '100vh', background: '#050508', display: 'flex', flexDirection: 'column' }}>
 
-      {/* Top nav */}
       <header style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50, background: '#050508', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 32px', borderBottom: '1px solid rgba(44,44,58,0.3)' }}>
         <Logo />
         <nav style={{ display: 'flex', gap: 36 }}>
@@ -192,7 +194,6 @@ export default function Dashboard() {
 
       <div style={{ display: 'flex', flex: 1, paddingTop: 62 }}>
 
-        {/* Sidebar */}
         <aside style={{ width: 240, flexShrink: 0, background: '#0C0C12', borderRight: '1px solid rgba(44,44,58,0.4)', display: 'flex', flexDirection: 'column', paddingTop: 28, position: 'fixed', left: 0, top: 62, bottom: 0 }}>
           <div style={{ padding: '0 24px', marginBottom: 36 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -236,7 +237,6 @@ export default function Dashboard() {
           </div>
         </aside>
 
-        {/* Main content */}
         <main style={{ marginLeft: 240, flex: 1, padding: '40px 48px', position: 'relative' }}>
           <div style={{ position: 'absolute', top: '20%', right: '20%', width: 400, height: 400, background: 'rgba(108,99,255,0.03)', filter: 'blur(120px)', borderRadius: '50%', pointerEvents: 'none' }} />
 
