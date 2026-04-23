@@ -1,5 +1,6 @@
 'use client'
 import Logo from '@/components/Logo'
+import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
@@ -8,10 +9,10 @@ import { createDrop } from '@/lib/drops'
 import { onboardWithPrivy, getTongoInstance, fundDrop } from '@/lib/starkzap'
 
 const NAV = [
-  { icon: '⊞', label: 'DASHBOARD', active: true },
-  { icon: '◈', label: 'PAYMENTS',  active: true  },
-  { icon: '◉', label: 'SECURITY',  active: false },
-  { icon: '▣', label: 'VAULT',     active: false },
+  { icon: '⊞', label: 'DASHBOARD', active: false, href: '/dashboard' },
+  { icon: '◈', label: 'PAYMENTS',  active: true,  href: '/drop' },
+  { icon: '◉', label: 'SECURITY',  active: false, href: null },
+  { icon: '▣', label: 'VAULT',     active: false, href: null },
 ]
 
 export default function Drop() {
@@ -40,6 +41,9 @@ export default function Drop() {
     try {
       const embeddedWallet = wallets.find(w => w.walletClientType === 'privy')
       if (!embeddedWallet) throw new Error('No embedded wallet found')
+
+      // DEBUG — remove after checking console
+      console.log('embeddedWallet:', JSON.stringify(embeddedWallet, null, 2))
 
       setStatus('Connecting to Starknet...')
 
@@ -139,22 +143,30 @@ export default function Drop() {
               </div>
             </div>
           </div>
+
           <nav style={{ flex: 1 }}>
             {NAV.map(item => (
-              <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '15px 24px', background: item.active ? '#14141C' : 'transparent', borderLeft: item.active ? '3px solid #6C63FF' : '3px solid transparent', color: item.active ? '#F0F0F8' : '#4A4A5A', cursor: 'pointer', transition: 'all 0.15s' }}>
-                <span style={{ fontSize: 15 }}>{item.icon}</span>
-                <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{item.label}</span>
-              </div>
+              item.href ? (
+                <Link key={item.label} href={item.href} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '15px 24px', background: item.active ? '#14141C' : 'transparent', borderLeft: item.active ? '3px solid #6C63FF' : '3px solid transparent', color: item.active ? '#F0F0F8' : '#4A4A5A', textDecoration: 'none', transition: 'all 0.15s' }}>
+                  <span style={{ fontSize: 15 }}>{item.icon}</span>
+                  <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{item.label}</span>
+                </Link>
+              ) : (
+                <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px 24px', borderLeft: '3px solid transparent', color: '#2C2C3A', cursor: 'not-allowed' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <span style={{ fontSize: 15 }}>{item.icon}</span>
+                    <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{item.label}</span>
+                  </div>
+                  <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#2C2C3A', border: '1px solid #1E1E28', padding: '2px 6px', borderRadius: 3 }}>SOON</span>
+                </div>
+              )
             ))}
           </nav>
+
           <div style={{ padding: 20 }}>
-            <button
-              onClick={handleCreate}
-              disabled={loading || !amount || parseFloat(amount) <= 0}
-              style={{ width: '100%', background: '#6C63FF', color: '#F0F0F8', padding: '14px', borderRadius: 4, border: 'none', cursor: 'pointer', fontFamily: "'Lato',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}
-            >
+            <Link href="/drop" style={{ display: 'block', width: '100%', background: '#6C63FF', color: '#F0F0F8', padding: '14px', borderRadius: 4, textAlign: 'center', textDecoration: 'none', fontFamily: "'Lato',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
               NEW_PAYMENT
-            </button>
+            </Link>
           </div>
         </aside>
 
