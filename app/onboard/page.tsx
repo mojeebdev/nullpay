@@ -2,12 +2,11 @@
 import Logo from '@/components/Logo'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { usePrivy, useWallets } from '@privy-io/react-auth'
+import { usePrivy } from '@privy-io/react-auth'
 
 export default function Onboard() {
   const router = useRouter()
   const { ready, authenticated, login } = usePrivy()
-  const { wallets } = useWallets()
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>('')
@@ -16,14 +15,12 @@ export default function Onboard() {
     setTimeout(() => setMounted(true), 60)
   }, [])
 
-  
+  // Redirect as soon as Privy auth is confirmed — no wallet check needed
   useEffect(() => {
-    if (!ready || !authenticated) return
-    const hasWallet = wallets.some(w => w.walletClientType === 'privy' && w.linked)
-    if (hasWallet) {
-      router.push('/drop')
+    if (ready && authenticated) {
+      router.push('/dashboard')
     }
-  }, [ready, authenticated, wallets, router])
+  }, [ready, authenticated, router])
 
   const handleLogin = async () => {
     setLoading(true)
@@ -48,11 +45,20 @@ export default function Onboard() {
             <Logo />
           </div>
 
-          <h1 style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 'clamp(34px,5vw,46px)', color: '#F0F0F8', lineHeight: '0.95em', letterSpacing: '-0.01em', marginBottom: 40 }}>
+          <h1 style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 'clamp(34px,5vw,46px)', color: '#F0F0F8', lineHeight: '0.95em', letterSpacing: '-0.01em', marginBottom: 16 }}>
             Identify<br />yourself.
           </h1>
 
+          {/* Wallet requirement notice */}
+          <div style={{ marginBottom: 32, padding: '12px 16px', background: '#14141C', border: '1px solid rgba(108,99,255,0.15)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 13 }}>🦊</span>
+            <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6C63FF', lineHeight: 1.6 }}>
+              You'll need ArgentX or Braavos installed to send & receive drops
+            </span>
+          </div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* Google login */}
             <button
               onClick={handleLogin}
               disabled={loading || !ready}
@@ -76,6 +82,7 @@ export default function Onboard() {
                 : <span style={{ color: '#4A4A5A', fontSize: 16 }}>›</span>}
             </button>
 
+            {/* Email login */}
             <button
               onClick={handleLogin}
               disabled={loading || !ready}
@@ -85,12 +92,11 @@ export default function Onboard() {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A8A9A" strokeWidth="1.5">
-                  <rect x="2" y="7" width="20" height="14" rx="2"/>
-                  <path d="M16 14a1 1 0 1 1-2 0 1 1 0 0 1 2 0z" fill="#8A8A9A"/>
-                  <path d="M22 11V9a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2"/>
+                  <rect x="2" y="4" width="20" height="16" rx="2"/>
+                  <path d="M2 7l10 7 10-7"/>
                 </svg>
                 <span style={{ fontFamily: "'Lato',sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#F0F0F8' }}>
-                  {loading ? 'CONNECTING...' : 'CONNECT WALLET'}
+                  {loading ? 'CONNECTING...' : 'CONTINUE WITH EMAIL'}
                 </span>
               </div>
               {loading
@@ -107,7 +113,7 @@ export default function Onboard() {
 
           <div style={{ marginTop: 36, textAlign: 'center' }}>
             <p style={{ fontFamily: "'Lato',sans-serif", fontWeight: 300, fontSize: 13, fontStyle: 'italic', color: '#8A8A9A' }}>
-              No seed phrase. No complexity.
+              Sign in with Google or email — wallet connects on the next step.
             </p>
           </div>
 

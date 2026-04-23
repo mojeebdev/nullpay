@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { usePrivy, useWallets } from '@privy-io/react-auth'
+import { usePrivy } from '@privy-io/react-auth'
 import Link from 'next/link'
 import Logo from '@/components/Logo'
 
@@ -19,29 +19,53 @@ const IS_MAINNET = process.env.NEXT_PUBLIC_STARKNET_NETWORK === 'mainnet'
 export default function Dashboard() {
   const router = useRouter()
   const { ready, authenticated, user, logout } = usePrivy()
-  const { wallets } = useWallets()
-  const [balance, setBalance] = useState<Balance>({ usdc: '—', strk: '—', loading: true })
-  const [copied, setCopied] = useState(false)
 
-  const embeddedWallet = wallets.find(w => w.walletClientType === 'privy' && w.linked)
-  const walletAddress = embeddedWallet?.address ?? (user as any)?.wallet?.address ?? null
+  const [balance, setBalance]       = useState<Balance>({ usdc: '—', strk: '—', loading: true })
+  const [copied, setCopied]         = useState(false)
+  const [walletAddress, setWalletAddress] = useState<string | null>(null)
+  const [walletConnecting, setWalletConnecting] = useState(false)
 
   useEffect(() => {
     if (ready && !authenticated) router.push('/onboard')
   }, [ready, authenticated, router])
 
-  // ✅ Reload once if wallet not loaded yet
+  // Read address from injected Starknet wallet (ArgentX / Braavos)
   useEffect(() => {
-    if (!walletAddress && ready && authenticated) {
-      const hasReloaded = sessionStorage.getItem('wallet_reload')
-      if (!hasReloaded) {
-        sessionStorage.setItem('wallet_reload', '1')
-        setTimeout(() => window.location.reload(), 2000)
+    const connectInjected = async () => {
+      const starknet = (window as any).starknet
+      if (!starknet) return
+
+      try {
+        setWalletConnecting(true)
+        await starknet.enable()
+        const accounts: string[] = await starknet.request({ type: 'wallet_requestAccounts' })
+        if (accounts && accounts[0]) {
+          setWalletAddress(accounts[0])
+        }
+      } catch (err) {
+        console.error('Failed to connect injected wallet:', err)
+      } finally {
+        setWalletConnecting(false)
       }
-    } else if (walletAddress) {
-      sessionStorage.removeItem('wallet_reload')
     }
-  }, [walletAddress, ready, authenticated])
+
+    if (ready && authenticated) {
+      connectInjected()
+    }
+  }, [ready, authenticated])
+
+  // Listen for account changes in ArgentX / Braavos
+  useEffect(() => {
+    const starknet = (window as any).starknet
+    if (!starknet) return
+
+    const handleAccountChange = (accounts: string[]) => {
+      if (accounts?.[0]) setWalletAddress(accounts[0])
+    }
+
+    starknet.on?.('accountsChanged', handleAccountChange)
+    return () => starknet.off?.('accountsChanged', handleAccountChange)
+  }, [])
 
   // Fetch balances via raw JSON-RPC
   useEffect(() => {
@@ -61,7 +85,6 @@ export default function Dashboard() {
           ? '0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8'
           : '0x0512feac6339ff7889822cb5aa2a86c848e9d392bb0e3e237c008674feed8343'
         const STRK = '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d'
-
         const SELECTOR = '0x2e4263afad30923c891518314c3c95dbe830a16874e8abc5777a9a20b54c76e'
 
         const rpcCall = async (rpc: string, contract: string) => {
@@ -122,8 +145,25 @@ export default function Dashboard() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const shortAddress = (addr: string) =>
-    `${addr.slice(0, 8)}...${addr.slice(-6)}`
+  const shortAddress = (addr: string) => `${addr.slice(0, 8)}...${addr.slice(-6)}`
+
+  const connectWallet = async () => {
+    const starknet = (window as any).starknet
+    if (!starknet) {
+      alert('No Starknet wallet detected. Please install ArgentX or Braavos.')
+      return
+    }
+    try {
+      setWalletConnecting(true)
+      await starknet.enable()
+      const accounts: string[] = await starknet.request({ type: 'wallet_requestAccounts' })
+      if (accounts?.[0]) setWalletAddress(accounts[0])
+    } catch (err) {
+      console.error('Connect failed:', err)
+    } finally {
+      setWalletConnecting(false)
+    }
+  }
 
   if (!ready || !authenticated) return (
     <div style={{ minHeight: '100vh', background: '#050508', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -204,7 +244,7 @@ export default function Dashboard() {
 
             <div style={{ marginBottom: 40 }}>
               <h1 style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 'clamp(28px,4vw,40px)', color: '#F0F0F8', letterSpacing: '-0.02em', marginBottom: 8 }}>Dashboard</h1>
-              <p style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#4A4A5A' }}>EMBEDDED_WALLET · BALANCES · ACTIVITY</p>
+              <p style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#4A4A5A' }}>STARKNET WALLET · BALANCES · ACTIVITY</p>
             </div>
 
             {/* Wallet card */}
@@ -213,13 +253,23 @@ export default function Dashboard() {
               <div style={{ position: 'relative', zIndex: 10 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
                   <div>
-                    <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#4A4A5A', display: 'block', marginBottom: 8 }}>EMBEDDED WALLET</span>
+                    <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#4A4A5A', display: 'block', marginBottom: 8 }}>
+                      {(window as any)?.starknet?.id === 'braavos' ? 'BRAAVOS WALLET' : 'ARGENTX WALLET'}
+                    </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <code style={{ fontFamily: 'ui-monospace,monospace', fontSize: 13, color: '#F0F0F8', letterSpacing: '0.02em' }}>
-                        {walletAddress ? shortAddress(walletAddress) : (
-                          <span style={{ color: '#4A4A5A', fontStyle: 'italic', fontFamily: "'Lato',sans-serif" }}>Initializing wallet...</span>
-                        )}
-                      </code>
+                      {walletAddress ? (
+                        <code style={{ fontFamily: 'ui-monospace,monospace', fontSize: 13, color: '#F0F0F8', letterSpacing: '0.02em' }}>
+                          {shortAddress(walletAddress)}
+                        </code>
+                      ) : (
+                        <button
+                          onClick={connectWallet}
+                          disabled={walletConnecting}
+                          style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6C63FF', background: 'transparent', border: '1px solid rgba(108,99,255,0.3)', padding: '8px 16px', borderRadius: 6, cursor: walletConnecting ? 'not-allowed' : 'pointer', opacity: walletConnecting ? 0.6 : 1 }}
+                        >
+                          {walletConnecting ? 'CONNECTING...' : 'CONNECT WALLET →'}
+                        </button>
+                      )}
                       {walletAddress && (
                         <button onClick={copyAddress} style={{ background: 'none', border: 'none', cursor: 'pointer', color: copied ? '#6C63FF' : '#4A4A5A', fontSize: 16, transition: 'color 0.2s' }}>
                           {copied ? '✓' : '⧉'}
@@ -229,7 +279,7 @@ export default function Dashboard() {
                     {walletAddress && (
                       <div style={{ marginTop: 6 }}>
                         <a
-                          href={`https://${IS_MAINNET ? '' : 'sepolia.'}voyager.online/contract/${walletAddress}`}
+                          href={`https://${IS_MAINNET ? '' : 'sepolia.'}starkscan.co/contract/${walletAddress}`}
                           target="_blank" rel="noopener noreferrer"
                           style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6C63FF', textDecoration: 'none' }}
                         >
@@ -241,7 +291,7 @@ export default function Dashboard() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <div style={{ width: 6, height: 6, borderRadius: '50%', background: walletAddress ? '#6C63FF' : '#4A4A5A', animation: walletAddress ? 'pulse 2s ease-in-out infinite' : 'none' }} />
                     <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: walletAddress ? '#6C63FF' : '#4A4A5A' }}>
-                      {walletAddress ? 'ACTIVE' : 'INITIALIZING...'}
+                      {walletAddress ? 'CONNECTED' : walletConnecting ? 'CONNECTING...' : 'NOT CONNECTED'}
                     </span>
                   </div>
                 </div>
@@ -302,9 +352,15 @@ export default function Dashboard() {
                 <Link href="/drop" style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#F0F0F8', background: '#6C63FF', padding: '14px 24px', borderRadius: 6, textDecoration: 'none' }}>
                   CREATE DROP →
                 </Link>
-                <button onClick={copyAddress} style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8A8A9A', background: 'transparent', border: '1px solid #2C2C3A', padding: '14px 24px', borderRadius: 6, cursor: 'pointer' }}>
-                  {copied ? 'COPIED ✓' : 'COPY ADDRESS'}
-                </button>
+                {walletAddress ? (
+                  <button onClick={copyAddress} style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8A8A9A', background: 'transparent', border: '1px solid #2C2C3A', padding: '14px 24px', borderRadius: 6, cursor: 'pointer' }}>
+                    {copied ? 'COPIED ✓' : 'COPY ADDRESS'}
+                  </button>
+                ) : (
+                  <button onClick={connectWallet} disabled={walletConnecting} style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8A8A9A', background: 'transparent', border: '1px solid #2C2C3A', padding: '14px 24px', borderRadius: 6, cursor: 'pointer' }}>
+                    {walletConnecting ? 'CONNECTING...' : 'CONNECT WALLET'}
+                  </button>
+                )}
                 <button onClick={logout} style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8A8A9A', background: 'transparent', border: '1px solid #2C2C3A', padding: '14px 24px', borderRadius: 6, cursor: 'pointer' }}>
                   DISCONNECT
                 </button>

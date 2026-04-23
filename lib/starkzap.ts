@@ -1,4 +1,11 @@
-import { OnboardStrategy, accountPresets, TongoConfidential, Amount, Address, sepoliaTokens } from 'starkzap'
+import {
+  OnboardStrategy,
+  accountPresets,
+  TongoConfidential,
+  Amount,
+  Address,
+  sepoliaTokens,
+} from 'starkzap'
 import { getSDK } from './sdk'
 
 const TONGO_CONTRACT = process.env.NEXT_PUBLIC_TONGO_CONTRACT! as Address
@@ -9,31 +16,28 @@ function getToken(symbol: string) {
   return token
 }
 
-export async function onboardWithPrivy(
-  privyWalletId: string,
-  publicKey: string,
-  rawSign: (hash: string) => Promise<string>
-) {
+export async function onboardWithInjected() {
   const sdk = getSDK()
 
+  
+  const starknet = (window as any).starknet
+  if (!starknet) {
+    throw new Error('No Starknet wallet found. Please install ArgentX or Braavos.')
+  }
+
+  
+  await starknet.enable()
+
+  const account = starknet.account
+  if (!account?.address) {
+    throw new Error('No account returned. Please unlock your wallet and try again.')
+  }
+
   const { wallet } = await sdk.onboard({
-    strategy: OnboardStrategy.Privy,
+    strategy: OnboardStrategy.Signer,
     accountPreset: accountPresets.argentXV050,
     deploy: 'if_needed',
-    privy: {
-      resolve: async () => ({
-        walletId: privyWalletId,
-        publicKey,
-        rawSign: async (hash: string) => {
-          const sig = await rawSign(hash)
-         
-          const sigWithout0x = sig.startsWith('0x') ? sig.slice(2) : sig
-          const r = `0x${sigWithout0x.slice(0, 64)}`
-          const s = `0x${sigWithout0x.slice(64, 128)}`
-          return [r, s] as any
-        },
-      }),
-    },
+    account,
   })
 
   return wallet

@@ -2,26 +2,26 @@
 import { useState, useEffect, use } from 'react'
 import Link from 'next/link'
 import Logo from '@/components/Logo'
-import { usePrivy, useWallets, WalletWithMetadata } from '@privy-io/react-auth'
-import { getDrop, claimDrop as markClaimed } from '@/lib/drops'
-import { onboardWithPrivy, getTongoInstance, claimDrop } from '@/lib/starkzap'
+import { usePrivy } from '@privy-io/react-auth'
+import { decodeClaimUrl, type ClaimPayload } from '@/lib/drops'
+import { onboardWithInjected, getTongoInstance, claimDrop } from '@/lib/starkzap'
 import type { WalletInterface } from 'starkzap'
 
-export default function ClaimPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
-  const { ready, authenticated, login, user } = usePrivy()
-  const { wallets } = useWallets()
+export default function ClaimPage({ params }: { params: Promise<{ encoded: string }> }) {
+  const { encoded } = use(params)
+  const { ready, authenticated, login } = usePrivy()
 
   const [phase, setPhase] = useState<'resolving'|'login'|'ready'|'claiming'|'claimed'|'invalid'>('resolving')
   const [hashText, setHashText] = useState('')
   const [displayAmt, setDisplayAmt] = useState(0)
   const [txHash, setTxHash] = useState<string|null>(null)
   const [error, setError] = useState<string|null>(null)
-  const [drop, setDrop] = useState<ReturnType<typeof getDrop>>(undefined)
+  const [payload, setPayload] = useState<ClaimPayload | null>(null)
   const [wallet, setWallet] = useState<WalletInterface | null>(null)
 
-  const fullHash = `claim:void:${id}`
+  const fullHash = `claim:void:${encoded.slice(0, 16)}`
 
+  // Resolving animation + payload decode
   useEffect(() => {
     if (phase !== 'resolving') return
     let i = 0
@@ -31,24 +31,27 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
       if (i > fullHash.length) {
         clearInterval(iv)
         setTimeout(() => {
-          const found = getDrop(id)
-          if (!found || found.claimed) {
+          const decoded = decodeClaimUrl(encoded)
+          if (!decoded) {
             setPhase('invalid')
-          } else if (!authenticated) {
+            return
+          }
+          setPayload(decoded)
+          if (!authenticated) {
             setPhase('login')
           } else {
-            setDrop(found)
             setPhase('ready')
           }
         }, 500)
       }
     }, 32)
     return () => clearInterval(iv)
-  }, [phase, fullHash, id, authenticated])
+  }, [phase, fullHash, encoded, authenticated])
 
+  // Amount counter animation
   useEffect(() => {
-    if (phase !== 'ready' || !drop) return
-    const target = parseFloat(drop.amount)
+    if (phase !== 'ready' || !payload) return
+    const target = parseFloat(payload.amount)
     const dur = 1200
     const start = performance.now()
     function step(now: number) {
@@ -59,86 +62,38 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
       else setDisplayAmt(target)
     }
     requestAnimationFrame(step)
-  }, [phase, drop])
+  }, [phase, payload])
 
+  // Transition login → ready after auth
   useEffect(() => {
-    if (phase === 'login' && ready && authenticated) {
-      const found = getDrop(id)
-      if (!found || found.claimed) {
-        setPhase('invalid')
-      } else {
-        setDrop(found)
-        setPhase('ready')
-      }
+    if (phase === 'login' && ready && authenticated && payload) {
+      setPhase('ready')
     }
-  }, [ready, authenticated, phase, id])
+  }, [ready, authenticated, phase, payload])
 
-  // ─── FIXED: Privy signing helper (same pattern as drop/page.tsx) ─────────────
-  const buildRawSign = (signerWallet: any) =>
-    async (hash: string): Promise<string> => {
-      const provider = await signerWallet.getEthereumProvider()
-
-      const accounts: string[] = await provider.request({ method: 'eth_accounts' })
-      if (!accounts || accounts.length === 0) {
-        throw new Error('No accounts found in Privy embedded wallet')
-      }
-
-      // Ensure hash has 0x prefix before signing
-      const hexHash = hash.startsWith('0x') ? hash : `0x${hash}`
-
-      // personal_sign expects [message, address] order
-      const sig: string = await provider.request({
-        method: 'personal_sign',
-        params: [hexHash, accounts[0]],
-      })
-
-      if (!sig || sig === '0x') {
-        // Fallback: try eth_sign (raw, no Ethereum prefix)
-        const sigFallback: string = await provider.request({
-          method: 'eth_sign',
-          params: [accounts[0], hexHash],
-        })
-        if (!sigFallback || sigFallback === '0x') {
-          throw new Error('Privy signing failed: empty signature response')
-        }
-        return sigFallback
-      }
-
-      return sig
-    }
-  // ────────────────────────────────────────────────────────────────────────────
-
+  // Init injected wallet once on ready phase
   useEffect(() => {
-    if (!user || wallet) return
+    if (phase !== 'ready' || wallet) return
 
     const initWallet = async () => {
       try {
-        const linkedWallet = user.linkedAccounts.find(
-          (account): account is WalletWithMetadata =>
-            account.type === 'wallet' && (account as WalletWithMetadata).walletClientType === 'privy'
-        ) as WalletWithMetadata | undefined
-
-        const signerWallet = wallets.find(w => w.walletClientType === 'privy')
-        if (!linkedWallet || !signerWallet) return
-
-        const publicKey = (linkedWallet as any).public_key || linkedWallet.address
-
-        const onboarded = await onboardWithPrivy(
-          signerWallet.address,
-          publicKey,
-          buildRawSign(signerWallet)   // ← fixed signer passed here
-        )
+        if (!(window as any).starknet) {
+          setError('No Starknet wallet found. Please install ArgentX or Braavos.')
+          return
+        }
+        const onboarded = await onboardWithInjected()
         setWallet(onboarded)
       } catch (err) {
         console.error('Wallet onboarding failed:', err)
+        setError('Failed to connect wallet. Please try again.')
       }
     }
 
     initWallet()
-  }, [user, wallet, wallets])
+  }, [phase, wallet])
 
   const handleClaim = async () => {
-    if (!drop) return
+    if (!payload) return
     setPhase('claiming')
     setError(null)
 
@@ -146,12 +101,10 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
       if (!wallet) throw new Error('Wallet not ready. Please try again.')
 
       const provider = (wallet as any).getProvider()
-      const tongo = getTongoInstance(drop.token, drop.tongoPrivateKey, provider)
+      const tongo = getTongoInstance(payload.token, payload.tongoPrivateKey, provider)
 
-      const hash = await claimDrop(wallet, tongo, drop.token, drop.amount)
+      const hash = await claimDrop(wallet, tongo, payload.token, payload.amount)
       setTxHash(hash)
-
-      markClaimed(id)
       setPhase('claimed')
     } catch (err: any) {
       console.error('Claim failed:', err)
@@ -187,20 +140,25 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
               <h2 style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 28, color: '#F0F0F8', marginBottom: 12, letterSpacing: '-0.02em' }}>
                 Claim your drop.
               </h2>
+              {payload && (
+                <div style={{ fontFamily: "'Playfair Display',serif", fontWeight: 900, fontSize: 42, color: '#6C63FF', marginBottom: 16, letterSpacing: '-0.02em' }}>
+                  {parseFloat(payload.amount).toFixed(2)} {payload.token}
+                </div>
+              )}
               <p style={{ fontFamily: "'Lato',sans-serif", fontWeight: 300, fontSize: 14, color: '#8A8A9A', marginBottom: 32, lineHeight: 1.7 }}>
-                Sign in to receive your funds. No wallet needed — we create one for you.
+                Sign in then connect your ArgentX or Braavos wallet to receive funds.
               </p>
               <button onClick={login} style={{ width: '100%', background: '#6C63FF', color: '#F0F0F8', padding: '18px', borderRadius: 6, border: 'none', cursor: 'pointer', fontFamily: "'Lato',sans-serif", fontWeight: 700, fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
                 SIGN IN TO CLAIM →
               </button>
               <p style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, fontWeight: 300, fontStyle: 'italic', color: '#4A4A5A', marginTop: 20 }}>
-                No seed phrase. No complexity.
+                Requires ArgentX or Braavos extension.
               </p>
             </div>
           </div>
         )}
 
-        {phase === 'ready' && drop && (
+        {phase === 'ready' && payload && (
           <div className="materialize" style={{ maxWidth: 420, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', position: 'relative', zIndex: 10 }}>
             <p style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 32, opacity: 0.65 }}>
               RECIPIENT_PAYLOAD_READY
@@ -210,12 +168,12 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
                 {displayAmt.toFixed(2)}
               </div>
               <div style={{ fontFamily: "'Playfair Display',serif", fontWeight: 900, fontSize: 'clamp(40px,8vw,68px)', color: '#6C63FF', lineHeight: 1, letterSpacing: '-0.02em' }}>
-                {drop.token}
+                {payload.token}
               </div>
             </div>
             <div style={{ margin: '28px 0 48px' }}>
               <p style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#4A4A5A', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
-                {drop.confidential ? 'CONFIDENTIAL' : 'PUBLIC'}
+                {payload.confidential ? 'CONFIDENTIAL' : 'PUBLIC'}
                 <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#4A4A5A', display: 'inline-block' }} />
                 ONE TIME
                 <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#4A4A5A', display: 'inline-block' }} />
@@ -223,7 +181,7 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
               </p>
             </div>
             {error && (
-              <div style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#ff6b6b', marginBottom: 16, padding: '10px 16px', background: 'rgba(255,107,107,0.08)', borderRadius: 6, border: '1px solid rgba(255,107,107,0.2)' }}>
+              <div style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#ff6b6b', marginBottom: 16, padding: '10px 16px', background: 'rgba(255,107,107,0.08)', borderRadius: 6, border: '1px solid rgba(255,107,107,0.2)', width: '100%', maxWidth: 400 }}>
                 {error}
               </div>
             )}
@@ -237,7 +195,7 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
                   style={{ width: '100%', background: '#6C63FF', color: '#F0F0F8', padding: '20px 32px', borderRadius: 6, border: 'none', cursor: wallet ? 'pointer' : 'not-allowed', opacity: wallet ? 1 : 0.5, fontFamily: "'Lato',sans-serif", fontWeight: 700, fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, position: 'relative', zIndex: 1, transition: 'opacity 0.2s' }}
                   onMouseEnter={e => { if (wallet) e.currentTarget.style.opacity = '0.88' }}
                   onMouseLeave={e => { if (wallet) e.currentTarget.style.opacity = '1' }}
-                >{wallet ? 'CLAIM →' : 'PREPARING WALLET...'}</button>
+                >{wallet ? 'CLAIM →' : 'CONNECTING WALLET...'}</button>
               </div>
             </div>
             <div style={{ marginTop: 36, display: 'flex', alignItems: 'center', gap: 8, opacity: 0.28 }}>
@@ -256,13 +214,13 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
           </div>
         )}
 
-        {phase === 'claimed' && drop && (
+        {phase === 'claimed' && payload && (
           <div className="materialize" style={{ maxWidth: 400, width: '100%', textAlign: 'center', position: 'relative', zIndex: 10 }}>
             <div style={{ background: '#0C0C12', border: '1px solid rgba(44,44,58,0.4)', borderRadius: 8, padding: '44px 40px' }}>
               <div style={{ width: 52, height: 52, background: 'rgba(108,99,255,0.1)', border: '1px solid rgba(108,99,255,0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: 22, color: '#6C63FF' }}>✓</div>
               <h2 style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 34, color: '#F0F0F8', marginBottom: 12, letterSpacing: '-0.02em' }}>Funds received.</h2>
               <p style={{ fontFamily: "'Lato',sans-serif", fontWeight: 300, fontSize: 14, color: '#8A8A9A', marginBottom: 20, lineHeight: 1.7 }}>
-                {drop.amount} {drop.token} landed in your wallet.<br />This link is now dead.
+                {payload.amount} {payload.token} landed in your wallet.<br />This link is now dead.
               </p>
               {txHash && (
                 <a href={`https://sepolia.starkscan.co/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', fontFamily: "'Lato',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 28, textDecoration: 'none' }}>

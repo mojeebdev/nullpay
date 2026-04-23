@@ -13,12 +13,6 @@ export default function NullPayPrivyProvider({ children }: { children: React.Rea
           loginMessage: 'No seed phrase. No complexity.',
         },
         loginMethods: ['email', 'google'],
-        embeddedWallets: {
-          ethereum: {
-            createOnLogin: 'all-users',
-          },
-          showWalletUIs: false,
-        },
       }}
     >
       {children}

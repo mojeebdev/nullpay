@@ -3,10 +3,10 @@ import Logo from '@/components/Logo'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { usePrivy, useWallets, WalletWithMetadata } from '@privy-io/react-auth'
-import { generateDropId, formatDropLink } from '@/lib/utils'
-import { createDrop } from '@/lib/drops'
-import { onboardWithPrivy, getTongoInstance, fundDrop } from '@/lib/starkzap'
+import { usePrivy } from '@privy-io/react-auth'
+import { generateDropId } from '@/lib/utils'
+import { createDrop, encodeClaimUrl } from '@/lib/drops'
+import { onboardWithInjected, getTongoInstance, fundDrop } from '@/lib/starkzap'
 
 const NAV = [
   { icon: '⊞', label: 'DASHBOARD', active: false, href: '/dashboard' },
@@ -18,7 +18,6 @@ const NAV = [
 export default function Drop() {
   const router = useRouter()
   const { ready, authenticated, user } = usePrivy()
-  const { wallets } = useWallets()
 
   const [amount, setAmount]     = useState('')
   const [token, setToken]       = useState<'USDC'|'STRK'>('USDC')
@@ -33,78 +32,31 @@ export default function Drop() {
     if (ready && !authenticated) router.push('/onboard')
   }, [ready, authenticated, router])
 
-  
-  const buildRawSign = (signerWallet: any) =>
-    async (hash: string): Promise<string> => {
-      const provider = await signerWallet.getEthereumProvider()
-
-      const accounts: string[] = await provider.request({ method: 'eth_accounts' })
-      if (!accounts || accounts.length === 0) {
-        throw new Error('No accounts found in Privy embedded wallet')
-      }
-
-     
-      const hexHash = hash.startsWith('0x') ? hash : `0x${hash}`
-
-      
-      const sig: string = await provider.request({
-        method: 'personal_sign',
-        params: [hexHash, accounts[0]],
-      })
-
-      if (!sig || sig === '0x') {
-        
-        const sigFallback: string = await provider.request({
-          method: 'eth_sign',
-          params: [accounts[0], hexHash],
-        })
-        if (!sigFallback || sigFallback === '0x') {
-          throw new Error('Privy signing failed: empty signature response')
-        }
-        return sigFallback
-      }
-
-      return sig
-    }
-
-
   const handleCreate = async () => {
     if (!amount || parseFloat(amount) <= 0) return
     setLoading(true)
-    setStatus('Preparing wallet...')
+    setStatus('Connecting wallet...')
 
     try {
-      const signerWallet = wallets.find(w => w.walletClientType === 'privy')
-      if (!signerWallet) throw new Error('No embedded wallet found')
-
-      const linkedAccount = user?.linkedAccounts.find(
-        (a: any) => a.type === 'wallet' && a.walletClientType === 'privy'
-      ) as WalletWithMetadata | undefined
-
-      const publicKey = (linkedAccount as any)?.public_key || signerWallet.address
+      if (!(window as any).starknet) {
+        throw new Error('No Starknet wallet detected. Please install ArgentX or Braavos.')
+      }
 
       setStatus('Connecting to Starknet...')
-
-      const wallet = await onboardWithPrivy(
-        signerWallet.address,
-        publicKey,
-        buildRawSign(signerWallet)   
-      )
+      const wallet = await onboardWithInjected()
 
       setStatus('Generating ZK proof...')
-
       const tongoPrivateKey = crypto.randomUUID().replace(/-/g, '')
       const provider = (wallet as any).getProvider()
       const tongo = getTongoInstance(token, tongoPrivateKey, provider)
       const recipientId = JSON.stringify(tongo.recipientId)
 
       setStatus('Funding confidential vault...')
-
       const hash = await fundDrop(wallet, tongo, token, amount)
       setTxHash(hash)
 
       const id = generateDropId()
-      createDrop({
+      const drop = createDrop({
         id,
         amount,
         token,
@@ -115,12 +67,12 @@ export default function Drop() {
         txHash: hash,
       })
 
-      setDropLink(formatDropLink(id))
+      setDropLink(encodeClaimUrl(drop))
       setStatus('')
     } catch (err: any) {
       console.error('Drop failed:', err)
       setStatus(`Error: ${err.message || 'Transaction failed'}`)
-      setTimeout(() => setStatus(''), 4000)
+      setTimeout(() => setStatus(''), 5000)
     } finally {
       setLoading(false)
     }
@@ -133,7 +85,16 @@ export default function Drop() {
     setTimeout(() => setCopied(false), 2200)
   }
 
-  const lbl = { fontFamily: "'Lato',sans-serif" as const, fontSize: 11, fontWeight: 700 as const, letterSpacing: '0.12em', textTransform: 'uppercase' as const, color: '#8A8A9A', display: 'block' as const, marginBottom: 10 }
+  const lbl = {
+    fontFamily: "'Lato',sans-serif" as const,
+    fontSize: 11,
+    fontWeight: 700 as const,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase' as const,
+    color: '#8A8A9A',
+    display: 'block' as const,
+    marginBottom: 10,
+  }
 
   if (!ready || !authenticated) return (
     <div style={{ minHeight: '100vh', background: '#050508', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -173,7 +134,7 @@ export default function Drop() {
                 <div style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 13, color: '#F0F0F8' }}>
                   {user?.google?.name || user?.email?.address?.split('@')[0] || 'NULL_ID'}
                 </div>
-                <div style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#4A4A5A' }}>STARKNET_MAINNET</div>
+                <div style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#4A4A5A' }}>STARKNET_SEPOLIA</div>
               </div>
             </div>
           </div>
@@ -213,6 +174,13 @@ export default function Drop() {
                 <div style={{ textAlign: 'center', marginBottom: 36 }}>
                   <h1 style={{ fontFamily: "'Playfair Display',serif", fontWeight: 700, fontSize: 'clamp(28px,4vw,40px)', color: '#F0F0F8', letterSpacing: '-0.01em', marginBottom: 8 }}>Create a drop</h1>
                   <p style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#4A4A5A' }}>ENCRYPTED_LINK_GENERATION_PROTOCOL</p>
+                </div>
+
+                <div style={{ background: '#14141C', border: '1px solid rgba(108,99,255,0.15)', borderRadius: 8, padding: '12px 16px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 14 }}>🦊</span>
+                  <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6C63FF' }}>
+                    REQUIRES ARGENTX OR BRAAVOS EXTENSION
+                  </span>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
