@@ -14,8 +14,10 @@ export default function NullPayPrivyProvider({ children }: { children: React.Rea
         },
         loginMethods: ['email', 'google'],
         embeddedWallets: {
-          createOnLogin: 'all-users',  
-          noPromptOnSignature: true,   
+          ethereum: {
+            createOnLogin: 'all-users',
+          },
+          showWalletUIs: false,
         },
       }}
     >
@@ -23,4 +25,3 @@ export default function NullPayPrivyProvider({ children }: { children: React.Rea
     </PrivyProvider>
   )
 }
-
