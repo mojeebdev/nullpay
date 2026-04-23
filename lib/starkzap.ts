@@ -1,7 +1,13 @@
-import { OnboardStrategy, accountPresets } from 'starkzap'
+import { OnboardStrategy, accountPresets, TongoConfidential, Amount } from 'starkzap'
 import { getSDK } from './sdk'
 
-export async function onboardWithPrivy(privyWalletId: string, publicKey: string, rawSign: (hash: string) => Promise<string>) {
+const TONGO_CONTRACT = process.env.NEXT_PUBLIC_TONGO_CONTRACT!
+
+export async function onboardWithPrivy(
+  privyWalletId: string,
+  publicKey: string,
+  rawSign: (hash: string) => Promise<string>
+) {
   const sdk = getSDK()
 
   const { wallet } = await sdk.onboard({
@@ -18,4 +24,35 @@ export async function onboardWithPrivy(privyWalletId: string, publicKey: string,
   })
 
   return wallet
+}
+
+export function getTongoInstance(
+  _token: string,
+  tongoPrivateKey: string,
+  provider: any
+): TongoConfidential {
+  return new TongoConfidential({
+    privateKey: tongoPrivateKey,
+    contractAddress: TONGO_CONTRACT,
+    provider,
+  })
+}
+
+export async function claimDrop(
+  wallet: any,
+  tongo: TongoConfidential,
+  token: string,
+  amount: string
+): Promise<string> {
+  const tx = await wallet
+    .tx()
+    .confidentialWithdraw(tongo, {
+      amount: Amount.parse(amount, token),
+      to: wallet.address,
+      sender: wallet.address,
+    })
+    .send()
+
+  await tx.wait()
+  return tx.hash
 }
