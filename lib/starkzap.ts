@@ -27,7 +27,7 @@ function getToken(symbol: string) {
 
 /**
  * Onboards the user via Privy.
- * Includes a fix for the "Felt Overflow" during the DEPLOY_ACCOUNT phase.
+ * Uses 'as any' to bypass strict SDK type definitions that hide feeConfig.
  */
 export async function onboardWithPrivy(
   privyWalletId: string,
@@ -40,8 +40,7 @@ export async function onboardWithPrivy(
     strategy: OnboardStrategy.Privy,
     accountPreset: accountPresets.argentXV050,
     deploy: 'if_needed',
-    // Forces Version 2 (ETH gas) for the deployment transaction 
-    // to bypass the buggy V3 resource_bounds calculation in the SDK.
+    // Force V2 (ETH gas) for deployment to prevent the V3 Felt Overflow crash
     feeConfig: {
       version: 2,
     },
@@ -51,12 +50,12 @@ export async function onboardWithPrivy(
         publicKey,
         rawSign: async (hash: string) => {
           const sig = await rawSign(hash)
-          // Standardize signature length
+          // Clean the signature to standard 64-byte components
           return sig.length === 132 ? sig.slice(0, 130) : sig
         },
       }),
     },
-  })
+  } as any)
 
   return wallet
 }
@@ -81,7 +80,7 @@ async function getSafeResourceBounds(wallet: any, calls: any[]) {
   try {
     const estimate = await wallet.account.estimateFee(calls);
     
-    // 15% buffer for safety
+    // 15% safety buffer for gas volatility
     const buffer = (val: string) => `0x${(BigInt(val) * 115n / 100n).toString(16)}`;
 
     return {
