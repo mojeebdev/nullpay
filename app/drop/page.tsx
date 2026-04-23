@@ -33,6 +33,41 @@ export default function Drop() {
     if (ready && !authenticated) router.push('/onboard')
   }, [ready, authenticated, router])
 
+  
+  const buildRawSign = (signerWallet: any) =>
+    async (hash: string): Promise<string> => {
+      const provider = await signerWallet.getEthereumProvider()
+
+      const accounts: string[] = await provider.request({ method: 'eth_accounts' })
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No accounts found in Privy embedded wallet')
+      }
+
+     
+      const hexHash = hash.startsWith('0x') ? hash : `0x${hash}`
+
+      
+      const sig: string = await provider.request({
+        method: 'personal_sign',
+        params: [hexHash, accounts[0]],
+      })
+
+      if (!sig || sig === '0x') {
+        
+        const sigFallback: string = await provider.request({
+          method: 'eth_sign',
+          params: [accounts[0], hexHash],
+        })
+        if (!sigFallback || sigFallback === '0x') {
+          throw new Error('Privy signing failed: empty signature response')
+        }
+        return sigFallback
+      }
+
+      return sig
+    }
+
+
   const handleCreate = async () => {
     if (!amount || parseFloat(amount) <= 0) return
     setLoading(true)
@@ -42,20 +77,18 @@ export default function Drop() {
       const signerWallet = wallets.find(w => w.walletClientType === 'privy')
       if (!signerWallet) throw new Error('No embedded wallet found')
 
-      const publicKey = (user?.linkedAccounts.find(
+      const linkedAccount = user?.linkedAccounts.find(
         (a: any) => a.type === 'wallet' && a.walletClientType === 'privy'
-      ) as any)?.public_key || signerWallet.address
+      ) as WalletWithMetadata | undefined
+
+      const publicKey = (linkedAccount as any)?.public_key || signerWallet.address
 
       setStatus('Connecting to Starknet...')
 
       const wallet = await onboardWithPrivy(
         signerWallet.address,
         publicKey,
-        async (hash: string) => {
-          const provider = await signerWallet.getEthereumProvider()
-          const accounts: string[] = await provider.request({ method: 'eth_accounts' })
-          return provider.request({ method: 'personal_sign', params: [hash, accounts[0]] })
-        }
+        buildRawSign(signerWallet)   
       )
 
       setStatus('Generating ZK proof...')

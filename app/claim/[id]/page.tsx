@@ -73,6 +73,41 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
     }
   }, [ready, authenticated, phase, id])
 
+  // ─── FIXED: Privy signing helper (same pattern as drop/page.tsx) ─────────────
+  const buildRawSign = (signerWallet: any) =>
+    async (hash: string): Promise<string> => {
+      const provider = await signerWallet.getEthereumProvider()
+
+      const accounts: string[] = await provider.request({ method: 'eth_accounts' })
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No accounts found in Privy embedded wallet')
+      }
+
+      // Ensure hash has 0x prefix before signing
+      const hexHash = hash.startsWith('0x') ? hash : `0x${hash}`
+
+      // personal_sign expects [message, address] order
+      const sig: string = await provider.request({
+        method: 'personal_sign',
+        params: [hexHash, accounts[0]],
+      })
+
+      if (!sig || sig === '0x') {
+        // Fallback: try eth_sign (raw, no Ethereum prefix)
+        const sigFallback: string = await provider.request({
+          method: 'eth_sign',
+          params: [accounts[0], hexHash],
+        })
+        if (!sigFallback || sigFallback === '0x') {
+          throw new Error('Privy signing failed: empty signature response')
+        }
+        return sigFallback
+      }
+
+      return sig
+    }
+  // ────────────────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (!user || wallet) return
 
@@ -91,11 +126,7 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
         const onboarded = await onboardWithPrivy(
           signerWallet.address,
           publicKey,
-          async (hash: string) => {
-            const provider = await signerWallet.getEthereumProvider()
-            const accounts: string[] = await provider.request({ method: 'eth_accounts' })
-            return provider.request({ method: 'personal_sign', params: [hash, accounts[0]] })
-          }
+          buildRawSign(signerWallet)   // ← fixed signer passed here
         )
         setWallet(onboarded)
       } catch (err) {
