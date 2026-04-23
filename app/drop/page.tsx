@@ -39,22 +39,20 @@ export default function Drop() {
     setStatus('Preparing wallet...')
 
     try {
-      const embeddedWallet = user?.linkedAccounts.find(
-        (account): account is WalletWithMetadata =>
-          account.type === 'wallet' && (account as WalletWithMetadata).walletClientType === 'privy'
-      ) as WalletWithMetadata | undefined
+      const signerWallet = wallets.find(w => w.walletClientType === 'privy')
+      if (!signerWallet) throw new Error('No embedded wallet found')
 
-      if (!embeddedWallet) throw new Error('No embedded wallet found')
-
-      const publicKey = (embeddedWallet as any).public_key || embeddedWallet.address
+      const publicKey = (user?.linkedAccounts.find(
+        (a: any) => a.type === 'wallet' && a.walletClientType === 'privy'
+      ) as any)?.public_key || signerWallet.address
 
       setStatus('Connecting to Starknet...')
 
       const wallet = await onboardWithPrivy(
-        embeddedWallet.address,
+        signerWallet.address,
         publicKey,
         async (hash: string) => {
-          const provider = await (embeddedWallet as any).getEthereumProvider()
+          const provider = await signerWallet.getEthereumProvider()
           const accounts: string[] = await provider.request({ method: 'eth_accounts' })
           return provider.request({ method: 'personal_sign', params: [hash, accounts[0]] })
         }

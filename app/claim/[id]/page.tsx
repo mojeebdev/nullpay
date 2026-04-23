@@ -78,24 +78,23 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
 
     const initWallet = async () => {
       try {
-        const embeddedWallet = user.linkedAccounts.find(
+        const linkedWallet = user.linkedAccounts.find(
           (account): account is WalletWithMetadata =>
             account.type === 'wallet' && (account as WalletWithMetadata).walletClientType === 'privy'
         ) as WalletWithMetadata | undefined
 
-        if (!embeddedWallet) return
+        const signerWallet = wallets.find(w => w.walletClientType === 'privy')
+        if (!linkedWallet || !signerWallet) return
 
-        const publicKey = (embeddedWallet as any).public_key || embeddedWallet.address
+        const publicKey = (linkedWallet as any).public_key || linkedWallet.address
 
         const onboarded = await onboardWithPrivy(
-          embeddedWallet.address,
+          signerWallet.address,
           publicKey,
           async (hash: string) => {
-            const provider = await (embeddedWallet as any).getEthereumProvider()
-            return provider.request({
-              method: 'personal_sign',
-              params: [hash, embeddedWallet.address],
-            })
+            const provider = await signerWallet.getEthereumProvider()
+            const accounts: string[] = await provider.request({ method: 'eth_accounts' })
+            return provider.request({ method: 'personal_sign', params: [hash, accounts[0]] })
           }
         )
         setWallet(onboarded)
@@ -105,7 +104,7 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
     }
 
     initWallet()
-  }, [user, wallet])
+  }, [user, wallet, wallets])
 
   const handleClaim = async () => {
     if (!drop) return
