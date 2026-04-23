@@ -224,7 +224,7 @@ export default function ClaimPage({ params }: { params: Promise<{ encoded: strin
               </p>
               {txHash && (
                 <a href={`https://sepolia.voyage.online/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', fontFamily: "'Lato',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 28, textDecoration: 'none' }}>
-                  VIEW ON STARKSCAN →
+                  VIEW ON VOYAGE.ONLINE →
                 </a>
               )}
               <p style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#4A4A5A', marginBottom: 28 }}>

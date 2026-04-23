@@ -271,7 +271,7 @@ export default function Drop() {
                   </h1>
                   {txHash && (
                     <a href={`https://sepolia.voyage.online/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 24, textDecoration: 'none' }}>
-                      VIEW ON STARKSCAN →
+                      VIEW ON VOYAGE.ONLINE →
                     </a>
                   )}
                   <div style={{ background: '#14141C', border: '1px solid rgba(44,44,58,0.4)', borderRadius: 8, padding: '12px 20px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>

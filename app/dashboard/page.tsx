@@ -283,7 +283,7 @@ export default function Dashboard() {
                           target="_blank" rel="noopener noreferrer"
                           style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6C63FF', textDecoration: 'none' }}
                         >
-                          VIEW ON STARKSCAN →
+                          VIEW ON VOYAGE.ONLINE →
                         </a>
                       </div>
                     )}
