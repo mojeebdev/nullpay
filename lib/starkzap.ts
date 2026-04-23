@@ -25,6 +25,10 @@ function getToken(symbol: string) {
   return token
 }
 
+/**
+ * Onboards the user via Privy.
+ * Includes a fix for the "Felt Overflow" during the DEPLOY_ACCOUNT phase.
+ */
 export async function onboardWithPrivy(
   privyWalletId: string,
   publicKey: string,
@@ -36,12 +40,18 @@ export async function onboardWithPrivy(
     strategy: OnboardStrategy.Privy,
     accountPreset: accountPresets.argentXV050,
     deploy: 'if_needed',
+    // Forces Version 2 (ETH gas) for the deployment transaction 
+    // to bypass the buggy V3 resource_bounds calculation in the SDK.
+    feeConfig: {
+      version: 2,
+    },
     privy: {
       resolve: async () => ({
         walletId: privyWalletId,
         publicKey,
         rawSign: async (hash: string) => {
           const sig = await rawSign(hash)
+          // Standardize signature length
           return sig.length === 132 ? sig.slice(0, 130) : sig
         },
       }),
@@ -63,12 +73,15 @@ export function getTongoInstance(
   })
 }
 
+/**
+ * Helper to estimate and format resource bounds for V3 Transactions.
+ * Adds a buffer and ensures values stay within valid Felt ranges.
+ */
 async function getSafeResourceBounds(wallet: any, calls: any[]) {
   try {
-    
     const estimate = await wallet.account.estimateFee(calls);
     
-    
+    // 15% buffer for safety
     const buffer = (val: string) => `0x${(BigInt(val) * 115n / 100n).toString(16)}`;
 
     return {
@@ -84,7 +97,7 @@ async function getSafeResourceBounds(wallet: any, calls: any[]) {
       }
     };
   } catch (e) {
-    console.error("Estimation failed, falling back to V2:", e);
+    console.error("Estimation failed, falling back to V2 (ETH gas):", e);
     return { version: 2 }; 
   }
 }
@@ -104,7 +117,6 @@ export async function fundDrop(
       sender: wallet.address,
     });
 
-  
   const options = await getSafeResourceBounds(wallet, txBuilder.calls);
   
   const tx = await txBuilder.send(options);
