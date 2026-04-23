@@ -14,7 +14,8 @@ export default function NullPayPrivyProvider({ children }: { children: React.Rea
         },
         loginMethods: ['email', 'google'],
         embeddedWallets: {
-          ethereum: { createOnLogin: 'all-users' }, 
+          createOnLogin: 'all-users',  
+          noPromptOnSignature: true,   
         },
       }}
     >

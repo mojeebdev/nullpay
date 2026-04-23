@@ -53,7 +53,7 @@ export default function Drop() {
       setStatus('Connecting to Starknet...')
 
       // Onboard via Starkzap + Privy
-      const wallet = await onboardWithPrivy(privyWalletId, embeddedWallet.address)
+      const wallet = await onboardWithPrivy(embeddedWallet)
 
       setStatus('Generating ZK proof...')
 

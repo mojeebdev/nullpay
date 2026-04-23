@@ -30,21 +30,24 @@ export function getSDK(): StarkZap {
   return _sdk
 }
 
-export async function onboardWithPrivy(walletId: string, publicKey: string) {
+export async function onboardWithPrivy(embeddedWallet: any) {
   const sdk = getSDK()
-  const appUrl = typeof window !== 'undefined'
-    ? window.location.origin
-    : process.env.NEXT_PUBLIC_APP_URL!
-  
+
   const { wallet } = await sdk.onboard({
     strategy: OnboardStrategy.Privy,
     deploy: 'if_needed',
-    // Removed feeMode: 'sponsored' since users pay for themselves
     privy: {
       resolve: async () => ({
-        walletId,
-        publicKey,
-        serverUrl: `${appUrl}/api/sign`,
+        walletId: embeddedWallet.address,
+        publicKey: embeddedWallet.address,
+        rawSign: async (_walletId: string, messageHash: string) => {
+          const provider = await embeddedWallet.getEthereumProvider()
+          const signature = await provider.request({
+            method: 'personal_sign',
+            params: [messageHash, embeddedWallet.address],
+          })
+          return signature
+        },
       }),
     },
   })
@@ -79,7 +82,6 @@ export async function fundDrop(
     amount,
     sender: wallet.address as Address,
   })
-  // 'default' feeMode means the wallet address pays for the gas
   const tx = await wallet.execute(calls, { feeMode: 'default' })
   await tx.wait()
   return tx.hash
@@ -98,7 +100,6 @@ export async function claimDrop(
     to: wallet.address as Address,
     sender: wallet.address as Address,
   })
-  // User pays gas from their balance
   const tx = await wallet.execute(calls, { feeMode: 'default' })
   await tx.wait()
   return tx.hash
