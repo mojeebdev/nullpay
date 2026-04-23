@@ -279,7 +279,7 @@ export default function Dashboard() {
                     {walletAddress && (
                       <div style={{ marginTop: 6 }}>
                         <a
-                          href={`https://${IS_MAINNET ? '' : 'sepolia.'}starkscan.co/contract/${walletAddress}`}
+                          href={`https://${IS_MAINNET ? '' : 'sepolia.'}voyage.online/contract/${walletAddress}`}
                           target="_blank" rel="noopener noreferrer"
                           style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#6C63FF', textDecoration: 'none' }}
                         >

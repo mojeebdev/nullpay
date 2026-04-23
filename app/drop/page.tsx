@@ -15,6 +15,17 @@ const NAV = [
   { icon: '▣', label: 'VAULT',     active: false, href: null },
 ]
 
+function generateStarkPrivateKey(): string {
+  const N = BigInt('0x0800000000000010ffffffffffffffffb781126dcae7b2321e66a241adc64d2f')
+  let key: bigint
+  do {
+    const bytes = new Uint8Array(32)
+    crypto.getRandomValues(bytes)
+    key = BigInt('0x' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(''))
+  } while (key === 0n || key >= N)
+  return '0x' + key.toString(16).padStart(64, '0')
+}
+
 export default function Drop() {
   const router = useRouter()
   const { ready, authenticated, user } = usePrivy()
@@ -46,7 +57,7 @@ export default function Drop() {
       const wallet = await onboardWithInjected()
 
       setStatus('Generating ZK proof...')
-      const tongoPrivateKey = crypto.randomUUID().replace(/-/g, '')
+      const tongoPrivateKey = generateStarkPrivateKey()
       const provider = (wallet as any).getProvider()
       const tongo = getTongoInstance(token, tongoPrivateKey, provider)
       const recipientId = JSON.stringify(tongo.recipientId)
@@ -259,7 +270,7 @@ export default function Drop() {
                     Your drop is live.
                   </h1>
                   {txHash && (
-                    <a href={`https://sepolia.starkscan.co/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 24, textDecoration: 'none' }}>
+                    <a href={`https://sepolia.voyage.online/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 24, textDecoration: 'none' }}>
                       VIEW ON STARKSCAN →
                     </a>
                   )}
