@@ -3,13 +3,13 @@ import { usePrivy, WalletWithMetadata } from '@privy-io/react-auth'
 import { useEffect, useState } from 'react'
 import { onboardWithPrivy } from '@/lib/starkzap'
 
-export default function Drop() {
+export default function ClaimPage() {
   const { user } = usePrivy()
   const [loading, setLoading] = useState(false)
   const [wallet, setWallet] = useState(null)
 
   useEffect(() => {
-    const handleOnboard = async () => {
+    const handleClaim = async () => {
       if (!user) return
 
       setLoading(true)
@@ -28,19 +28,19 @@ export default function Drop() {
         const onboardedWallet = await onboardWithPrivy(privyWalletId, embeddedWallet)
         setWallet(onboardedWallet)
       } catch (error) {
-        console.error('Onboarding failed:', error)
+        console.error('Claim onboarding failed:', error)
       } finally {
         setLoading(false)
       }
     }
 
-    handleOnboard()
+    handleClaim()
   }, [user])
 
   return (
     <div>
       {loading && <p>Loading...</p>}
-      {wallet && <p>Wallet onboarded: {wallet}</p>}
+      {wallet && <p>Wallet ready for claim: {wallet}</p>}
     </div>
   )
 }
