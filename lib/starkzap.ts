@@ -38,6 +38,24 @@ export function getTongoInstance(
   })
 }
 
+export async function fundDrop(
+  wallet: any,
+  tongo: TongoConfidential,
+  token: string,
+  amount: string
+): Promise<string> {
+  const tx = await wallet
+    .tx()
+    .confidentialFund(tongo, {
+      amount: Amount.parse(amount, token),
+      sender: wallet.address,
+    })
+    .send()
+
+  await tx.wait()
+  return tx.hash
+}
+
 export async function claimDrop(
   wallet: any,
   tongo: TongoConfidential,
