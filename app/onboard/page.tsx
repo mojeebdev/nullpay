@@ -6,110 +6,30 @@ import { usePrivy, useWallets } from '@privy-io/react-auth'
 
 export default function Onboard() {
   const router = useRouter()
-  const { ready, authenticated, login, user } = usePrivy()
+  const { ready, authenticated, login } = usePrivy()
   const { wallets } = useWallets()
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>('')
-  const [walletInitialized, setWalletInitialized] = useState(false)
 
-  useEffect(() => { 
-    setTimeout(() => setMounted(true), 60) 
+  useEffect(() => {
+    setTimeout(() => setMounted(true), 60)
   }, [])
 
-  // ✅ Handle wallet initialization after email signup
+  
   useEffect(() => {
-    if (!ready || !authenticated || !user || walletInitialized) return
-
-    // Check if wallet already exists (from previous sessions)
-    const hasEmbeddedWallet = wallets.some(w => w.walletClientType === 'privy' && w.linked)
-    
-    if (hasEmbeddedWallet) {
-      initializeWalletAndProceed(wallets)
-      setWalletInitialized(true)
-      return
+    if (!ready || !authenticated) return
+    const hasWallet = wallets.some(w => w.walletClientType === 'privy' && w.linked)
+    if (hasWallet) {
+      router.push('/drop')
     }
-
-    // If no wallet but createOnLogin is enabled, wait for it to be created
-    const timer = setTimeout(() => {
-      const newWallet = wallets.find(w => w.walletClientType === 'privy' && w.linked)
-      if (newWallet) {
-        initializeWalletAndProceed(wallets)
-        setWalletInitialized(true)
-      } else {
-        console.warn('Wallet not auto-created, attempting via API')
-        createWalletViaAPI()
-      }
-    }, 1500)
-
-    return () => clearTimeout(timer)
-  }, [ready, authenticated, user, wallets, walletInitialized])
-
-  // ✅ Initialize wallet and store ID
-  const initializeWalletAndProceed = async (walletList: any[]) => {
-    try {
-      if (!user?.id) {
-        throw new Error('User ID not available')
-      }
-
-      const embeddedWallet = walletList.find(w => w.walletClientType === 'privy' && w.linked)
-      
-      if (embeddedWallet) {
-        // Store wallet info in sessionStorage
-        sessionStorage.setItem('privy_wallet_address', embeddedWallet.address)
-        sessionStorage.setItem('privy_user_id', user.id)
-        
-        console.log('✅ Wallet initialized:', embeddedWallet.address)
-        
-        // Ensure wallet exists on Privy servers
-        await createWalletViaAPI()
-      }
-    } catch (err: any) {
-      console.error('Initialization error:', err)
-      setError(err.message)
-    }
-  }
-
-  // ✅ Create wallet via API
-  const createWalletViaAPI = async () => {
-    if (!user?.id) return
-
-    try {
-      const response = await fetch('/api/wallets/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create wallet')
-      }
-
-      // ✅ Store the wallet ID from Privy API
-      const walletId = data.data?.id
-      if (walletId) {
-        sessionStorage.setItem('privy_wallet_id', walletId)
-        console.log('✅ Wallet ID stored:', walletId)
-      }
-
-      // Proceed to drop page
-      setTimeout(() => router.push('/drop'), 500)
-    } catch (err: any) {
-      console.error('Wallet creation failed:', err)
-      setError(err.message)
-      // Still proceed to drop - wallet might already exist
-      setTimeout(() => router.push('/drop'), 1000)
-    }
-  }
+  }, [ready, authenticated, wallets, router])
 
   const handleLogin = async () => {
     setLoading(true)
     setError('')
     try {
       await login()
-      // Wallet creation handled by useEffect
     } catch (e: any) {
       console.error('Login failed:', e)
       setError(e.message || 'Login failed')
@@ -181,9 +101,7 @@ export default function Onboard() {
 
           {error && (
             <div style={{ marginTop: 16, padding: '12px 16px', background: 'rgba(255,107,107,0.1)', border: '1px solid rgba(255,107,107,0.3)', borderRadius: 6, textAlign: 'center' }}>
-              <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, color: '#ff6b6b', letterSpacing: '0.1em' }}>
-                {error}
-              </span>
+              <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, color: '#ff6b6b', letterSpacing: '0.1em' }}>{error}</span>
             </div>
           )}
 
