@@ -24,7 +24,11 @@ export async function onboardWithPrivy(
       resolve: async () => ({
         walletId: privyWalletId,
         publicKey,
-        rawSign,
+        rawSign: async (hash: string) => {
+          const sig = await rawSign(hash)
+          
+          return sig.length === 132 ? sig.slice(0, 130) : sig
+        },
       }),
     },
   })
