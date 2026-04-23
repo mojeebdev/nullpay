@@ -73,7 +73,6 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
     }
   }, [ready, authenticated, phase, id])
 
-  // Onboard wallet as soon as user is authenticated
   useEffect(() => {
     if (!user || wallet) return
 
@@ -86,9 +85,11 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
 
         if (!embeddedWallet) return
 
+        const publicKey = (embeddedWallet as any).public_key || embeddedWallet.address
+
         const onboarded = await onboardWithPrivy(
           embeddedWallet.address,
-          embeddedWallet.address,
+          publicKey,
           async (hash: string) => {
             const provider = await (embeddedWallet as any).getEthereumProvider()
             return provider.request({
@@ -131,7 +132,6 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
 
   return (
     <div style={{ minHeight: '100vh', background: '#050508', display: 'flex', flexDirection: 'column' }}>
-
       <header style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '32px 24px' }}>
         <Link href="/"><Logo /></Link>
       </header>
@@ -175,7 +175,6 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
             <p style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 32, opacity: 0.65 }}>
               RECIPIENT_PAYLOAD_READY
             </p>
-
             <div style={{ marginBottom: 8 }}>
               <div style={{ fontFamily: "'Playfair Display',serif", fontWeight: 900, fontSize: 'clamp(72px,14vw,104px)', color: '#6C63FF', lineHeight: 1, letterSpacing: '-0.03em' }}>
                 {displayAmt.toFixed(2)}
@@ -184,7 +183,6 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
                 {drop.token}
               </div>
             </div>
-
             <div style={{ margin: '28px 0 48px' }}>
               <p style={{ fontFamily: "'Lato',sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#4A4A5A', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
                 {drop.confidential ? 'CONFIDENTIAL' : 'PUBLIC'}
@@ -194,13 +192,11 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
                 POWERED BY STARKNET
               </p>
             </div>
-
             {error && (
               <div style={{ fontFamily: "'Lato',sans-serif", fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#ff6b6b', marginBottom: 16, padding: '10px 16px', background: 'rgba(255,107,107,0.08)', borderRadius: 6, border: '1px solid rgba(255,107,107,0.2)' }}>
                 {error}
               </div>
             )}
-
             <div style={{ width: '100%', maxWidth: 400 }}>
               <div className="pulse-wrap" style={{ width: '100%' }}>
                 <div className="pulse-ring" style={{ inset: -10, borderRadius: 10 }} />
@@ -214,7 +210,6 @@ export default function ClaimPage({ params }: { params: Promise<{ id: string }> 
                 >{wallet ? 'CLAIM →' : 'PREPARING WALLET...'}</button>
               </div>
             </div>
-
             <div style={{ marginTop: 36, display: 'flex', alignItems: 'center', gap: 8, opacity: 0.28 }}>
               <span style={{ fontSize: 12 }}>🔒</span>
               <span style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#4A4A5A' }}>ENCRYPTED_LEDGER_ACCESS_SINGLE_SESSION</span>

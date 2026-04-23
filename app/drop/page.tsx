@@ -3,7 +3,7 @@ import Logo from '@/components/Logo'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { usePrivy, useWallets } from '@privy-io/react-auth'
+import { usePrivy, useWallets, WalletWithMetadata } from '@privy-io/react-auth'
 import { generateDropId, formatDropLink } from '@/lib/utils'
 import { createDrop } from '@/lib/drops'
 import { onboardWithPrivy, getTongoInstance, fundDrop } from '@/lib/starkzap'
@@ -39,17 +39,20 @@ export default function Drop() {
     setStatus('Preparing wallet...')
 
     try {
-      const embeddedWallet = wallets.find(w => w.walletClientType === 'privy')
+      const embeddedWallet = user?.linkedAccounts.find(
+        (account): account is WalletWithMetadata =>
+          account.type === 'wallet' && (account as WalletWithMetadata).walletClientType === 'privy'
+      ) as WalletWithMetadata | undefined
+
       if (!embeddedWallet) throw new Error('No embedded wallet found')
 
-      // DEBUG — remove after checking console
-      console.log('embeddedWallet:', JSON.stringify(embeddedWallet, null, 2))
+      const publicKey = (embeddedWallet as any).public_key || embeddedWallet.address
 
       setStatus('Connecting to Starknet...')
 
       const wallet = await onboardWithPrivy(
         embeddedWallet.address,
-        embeddedWallet.address,
+        publicKey,
         async (hash: string) => {
           const provider = await (embeddedWallet as any).getEthereumProvider()
           const accounts: string[] = await provider.request({ method: 'eth_accounts' })
