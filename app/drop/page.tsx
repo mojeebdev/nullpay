@@ -51,7 +51,10 @@ export default function Drop() {
       const tongoKeyBigInt = generateStarkPrivateKey()
       const provider = (wallet as any).getProvider()
       const tongo = getTongoInstance(token, tongoKeyBigInt, provider)
-      const recipientId = JSON.stringify(tongo.recipientId)
+      // BigInt-safe — recipientId { x, y } may contain BigInt values
+      const recipientId = JSON.stringify(tongo.recipientId, (_, v) =>
+        typeof v === 'bigint' ? '0x' + v.toString(16) : v
+      )
 
       // Serialise to hex string for URL storage
       const tongoPrivateKey = '0x' + tongoKeyBigInt.toString(16).padStart(64, '0')
@@ -264,8 +267,8 @@ export default function Drop() {
                     Your drop is live.
                   </h1>
                   {txHash && (
-                    <a href={`https://sepolia.voyage.online/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 24, textDecoration: 'none' }}>
-                      VIEW ON VOYAGE.ONLINE →
+                    <a href={`https://sepolia.starkscan.co/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 24, textDecoration: 'none' }}>
+                      VIEW ON STARKSCAN →
                     </a>
                   )}
                   <div style={{ background: '#14141C', border: '1px solid rgba(44,44,58,0.4)', borderRadius: 8, padding: '12px 20px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>

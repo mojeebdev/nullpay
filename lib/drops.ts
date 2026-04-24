@@ -14,6 +14,10 @@ export interface Drop {
 
 const STORAGE_KEY = 'nullpay_drops'
 
+
+const bigintReplacer = (_: string, v: unknown) =>
+  typeof v === 'bigint' ? '0x' + v.toString(16) : v
+
 function readAll(): Record<string, Drop> {
   if (typeof window === 'undefined') return {}
   try {
@@ -24,7 +28,7 @@ function readAll(): Record<string, Drop> {
 }
 
 function writeAll(drops: Record<string, Drop>) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(drops))
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(drops, bigintReplacer))
 }
 
 export function createDrop(
@@ -60,6 +64,8 @@ export function isExpired(drop: Drop): boolean {
   return Date.now() > drop.expiresAt
 }
 
+
+
 export interface ClaimPayload {
   id: string
   amount: string
@@ -80,7 +86,9 @@ export function encodeClaimUrl(drop: Drop): string {
     recipientId:     drop.recipientId,
     txHash:          drop.txHash,
   }
-  const encoded = btoa(JSON.stringify(payload))
+  
+  const json = JSON.stringify(payload, bigintReplacer)
+  const encoded = btoa(json)
   const base = typeof window !== 'undefined'
     ? window.location.origin
     : 'https://nullpay.blindspotlab.xyz'
