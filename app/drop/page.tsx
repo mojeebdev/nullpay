@@ -7,6 +7,7 @@ import { usePrivy } from '@privy-io/react-auth'
 import { generateDropId } from '@/lib/utils'
 import { createDrop, encodeClaimUrl } from '@/lib/drops'
 import { onboardWithInjected, getTongoInstance, fundDrop, generateStarkPrivateKey } from '@/lib/starkzap'
+import { sepoliaTokens } from 'starkzap'
 
 const NAV = [
   { icon: '⊞', label: 'DASHBOARD', active: false, href: '/dashboard' },
@@ -44,6 +45,9 @@ export default function Drop() {
 
       setStatus('Connecting to Starknet...')
       const wallet = await onboardWithInjected()
+
+      // DEBUG — remove after confirming token addresses
+      console.log('sepoliaTokens:', JSON.stringify(sepoliaTokens, (_, v) => typeof v === 'bigint' ? v.toString() : v, 2))
 
       setStatus('Generating ZK proof...')
 
