@@ -8,9 +8,12 @@ import {
 import type { Signature } from 'starknet'
 import { getSDK } from './sdk'
 
-const TONGO_CONTRACT = process.env.NEXT_PUBLIC_TONGO_CONTRACT! as Address
+const TONGO_CONTRACTS: Record<string, string> = {
+  USDC: process.env.NEXT_PUBLIC_TONGO_CONTRACT_USDC_SEPOLIA!,
+  STRK: process.env.NEXT_PUBLIC_TONGO_CONTRACT_STRK_SEPOLIA!,
+}
 
-// Stark curve order N
+
 const STARK_N = BigInt('0x0800000000000010ffffffffffffffffb781126dcae7b2321e66a241adc64d2f')
 
 function getToken(symbol: string) {
@@ -29,8 +32,7 @@ export function generateStarkPrivateKey(): bigint {
   return key
 }
 
-// Wraps ArgentX / Braavos injected account as a SignerInterface
-// getPubKey returns the account address — the wallet manages its own keys internally
+
 class InjectedSigner implements SignerInterface {
   private address: string
 
@@ -39,13 +41,12 @@ class InjectedSigner implements SignerInterface {
   }
 
   async getPubKey(): Promise<string> {
-    // Return address directly — ArgentX manages its own keys,
-    // we never have access to the raw private key
+   
     return this.address
   }
 
   async signRaw(hash: string): Promise<Signature> {
-    // Use starknet_signTypedData or signMessage via the account
+   
     const result = await this.starknet.request({
       type: 'wallet_signTypedData',
       params: {
@@ -95,13 +96,15 @@ export async function onboardWithInjected() {
 }
 
 export function getTongoInstance(
-  _token: string,
+  token: string,
   tongoPrivateKey: bigint,
   provider: any
 ): TongoConfidential {
+  const contractAddress = TONGO_CONTRACTS[token] as Address
+  if (!contractAddress) throw new Error(`No Tongo contract for token: ${token}`)
   return new TongoConfidential({
     privateKey: tongoPrivateKey,
-    contractAddress: TONGO_CONTRACT,
+    contractAddress,
     provider,
   })
 }
