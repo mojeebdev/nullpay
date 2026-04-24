@@ -147,3 +147,4 @@ export async function claimDrop(
   await tx.wait()
   return tx.hash
 }
+
