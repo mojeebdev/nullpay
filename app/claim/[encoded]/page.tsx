@@ -21,7 +21,7 @@ export default function ClaimPage({ params }: { params: Promise<{ encoded: strin
 
   const fullHash = `claim:void:${encoded.slice(0, 16)}`
 
-  // Resolving animation + payload decode
+  // Resolving animation + decode payload from URL
   useEffect(() => {
     if (phase !== 'resolving') return
     let i = 0
@@ -83,9 +83,9 @@ export default function ClaimPage({ params }: { params: Promise<{ encoded: strin
         }
         const onboarded = await onboardWithInjected()
         setWallet(onboarded)
-      } catch (err) {
-        console.error('Wallet onboarding failed:', err)
-        setError('Failed to connect wallet. Please try again.')
+      } catch (err: any) {
+        console.error('Wallet init failed:', err)
+        setError(err.message || 'Failed to connect wallet. Please try again.')
       }
     }
 
@@ -101,7 +101,10 @@ export default function ClaimPage({ params }: { params: Promise<{ encoded: strin
       if (!wallet) throw new Error('Wallet not ready. Please try again.')
 
       const provider = (wallet as any).getProvider()
-      const tongo = getTongoInstance(payload.token, payload.tongoPrivateKey, provider)
+
+      // Convert stored hex string back to BigInt — what TongoConfidential expects
+      const tongoKeyBigInt = BigInt(payload.tongoPrivateKey)
+      const tongo = getTongoInstance(payload.token, tongoKeyBigInt, provider)
 
       const hash = await claimDrop(wallet, tongo, payload.token, payload.amount)
       setTxHash(hash)

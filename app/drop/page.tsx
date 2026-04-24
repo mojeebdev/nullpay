@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { usePrivy } from '@privy-io/react-auth'
 import { generateDropId } from '@/lib/utils'
 import { createDrop, encodeClaimUrl } from '@/lib/drops'
-import { onboardWithInjected, getTongoInstance, fundDrop } from '@/lib/starkzap'
+import { onboardWithInjected, getTongoInstance, fundDrop, generateStarkPrivateKey } from '@/lib/starkzap'
 
 const NAV = [
   { icon: '⊞', label: 'DASHBOARD', active: false, href: '/dashboard' },
@@ -14,17 +14,6 @@ const NAV = [
   { icon: '◉', label: 'SECURITY',  active: false, href: null },
   { icon: '▣', label: 'VAULT',     active: false, href: null },
 ]
-
-function generateStarkPrivateKey(): string {
-  const N = BigInt('0x0800000000000010ffffffffffffffffb781126dcae7b2321e66a241adc64d2f')
-  let key: bigint
-  do {
-    const bytes = new Uint8Array(32)
-    crypto.getRandomValues(bytes)
-    key = BigInt('0x' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(''))
-  } while (key === 0n || key >= N)
-  return '0x' + key.toString(16).padStart(64, '0')
-}
 
 export default function Drop() {
   const router = useRouter()
@@ -57,10 +46,15 @@ export default function Drop() {
       const wallet = await onboardWithInjected()
 
       setStatus('Generating ZK proof...')
-      const tongoPrivateKey = generateStarkPrivateKey()
+
+      // Generate valid Stark private key as BigInt — what TongoConfidential expects
+      const tongoKeyBigInt = generateStarkPrivateKey()
       const provider = (wallet as any).getProvider()
-      const tongo = getTongoInstance(token, tongoPrivateKey, provider)
+      const tongo = getTongoInstance(token, tongoKeyBigInt, provider)
       const recipientId = JSON.stringify(tongo.recipientId)
+
+      // Serialise to hex string for URL storage
+      const tongoPrivateKey = '0x' + tongoKeyBigInt.toString(16).padStart(64, '0')
 
       setStatus('Funding confidential vault...')
       const hash = await fundDrop(wallet, tongo, token, amount)
