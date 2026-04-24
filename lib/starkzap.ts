@@ -107,6 +107,9 @@ export async function onboardWithInjected() {
     },
   })
 
+  // Deploy account if needed before any transactions
+  await wallet.ensureReady({ deploy: 'if_needed' })
+
   return wallet
 }
 
