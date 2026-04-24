@@ -5,7 +5,6 @@ import {
   sepoliaTokens,
   mainnetTokens,
 } from 'starkzap'
-import { RpcProvider, Account } from 'starknet'
 import { getSDK } from './sdk'
 
 const IS_MAINNET = process.env.NEXT_PUBLIC_STARKNET_NETWORK === 'mainnet'
@@ -52,15 +51,6 @@ export async function onboardWithInjected() {
     starknet.account?.address
 
   if (!address) throw new Error('No account returned from wallet.')
-
-  // Use starknet.js Account directly with the injected provider
-  // This handles ALL wallet types natively without custom signers
-  const rpcUrl = process.env.NEXT_PUBLIC_STARKNET_RPC_URL!
-  const provider = new RpcProvider({ nodeUrl: rpcUrl })
-
-  // The injected wallet's account IS the signer — pass it directly
-  // starknet.account is a fully functional starknet.js Account object
-  const account = new Account(provider, address, starknet.account)
 
   // Wrap in starkzap wallet interface
   const sdk = getSDK()
