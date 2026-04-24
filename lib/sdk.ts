@@ -4,7 +4,8 @@ let sdk: StarkZap | null = null
 
 export function getSDK(): StarkZap {
   if (!sdk) {
-    sdk = new StarkZap({ network: 'sepolia' })
+    const network = process.env.NEXT_PUBLIC_STARKNET_NETWORK === 'mainnet' ? 'mainnet' : 'sepolia'
+    sdk = new StarkZap({ network })
   }
   return sdk
 }

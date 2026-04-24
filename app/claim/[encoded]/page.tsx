@@ -21,7 +21,7 @@ export default function ClaimPage({ params }: { params: Promise<{ encoded: strin
 
   const fullHash = `claim:void:${encoded.slice(0, 16)}`
 
-  // Resolving animation + decode payload from URL
+ 
   useEffect(() => {
     if (phase !== 'resolving') return
     let i = 0
@@ -48,7 +48,7 @@ export default function ClaimPage({ params }: { params: Promise<{ encoded: strin
     return () => clearInterval(iv)
   }, [phase, fullHash, encoded, authenticated])
 
-  // Amount counter animation
+ 
   useEffect(() => {
     if (phase !== 'ready' || !payload) return
     const target = parseFloat(payload.amount)
@@ -64,14 +64,14 @@ export default function ClaimPage({ params }: { params: Promise<{ encoded: strin
     requestAnimationFrame(step)
   }, [phase, payload])
 
-  // Transition login → ready after auth
+
   useEffect(() => {
     if (phase === 'login' && ready && authenticated && payload) {
       setPhase('ready')
     }
   }, [ready, authenticated, phase, payload])
 
-  // Init injected wallet once on ready phase
+  
   useEffect(() => {
     if (phase !== 'ready' || wallet) return
 
@@ -102,7 +102,7 @@ export default function ClaimPage({ params }: { params: Promise<{ encoded: strin
 
       const provider = (wallet as any).getProvider()
 
-      // Convert stored hex string back to BigInt — what TongoConfidential expects
+      
       const tongoKeyBigInt = BigInt(payload.tongoPrivateKey)
       const tongo = getTongoInstance(payload.token, tongoKeyBigInt, provider)
 
@@ -226,8 +226,8 @@ export default function ClaimPage({ params }: { params: Promise<{ encoded: strin
                 {payload.amount} {payload.token} landed in your wallet.<br />This link is now dead.
               </p>
               {txHash && (
-                <a href={`https://sepolia.voyager.online/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', fontFamily: "'Lato',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 28, textDecoration: 'none' }}>
-                  VIEW ON voyager.online →
+                <a href={`https://voyager.online/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', fontFamily: "'Lato',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 28, textDecoration: 'none' }}>
+                  VIEW ON STARKSCAN →
                 </a>
               )}
               <p style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#4A4A5A', marginBottom: 28 }}>

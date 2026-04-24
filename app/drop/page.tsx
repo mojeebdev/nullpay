@@ -7,7 +7,6 @@ import { usePrivy } from '@privy-io/react-auth'
 import { generateDropId } from '@/lib/utils'
 import { createDrop, encodeClaimUrl } from '@/lib/drops'
 import { onboardWithInjected, getTongoInstance, fundDrop, generateStarkPrivateKey } from '@/lib/starkzap'
-import { sepoliaTokens } from 'starkzap'
 
 const NAV = [
   { icon: '⊞', label: 'DASHBOARD', active: false, href: '/dashboard' },
@@ -45,9 +44,6 @@ export default function Drop() {
 
       setStatus('Connecting to Starknet...')
       const wallet = await onboardWithInjected()
-
-      // DEBUG — remove after confirming token addresses
-      console.log('sepoliaTokens:', JSON.stringify(sepoliaTokens, (_, v) => typeof v === 'bigint' ? v.toString() : v, 2))
 
       setStatus('Generating ZK proof...')
 
@@ -271,7 +267,7 @@ export default function Drop() {
                     Your drop is live.
                   </h1>
                   {txHash && (
-                    <a href={`https://sepolia.starkscan.co/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 24, textDecoration: 'none' }}>
+                    <a href={`https://voyager.online/tx/${txHash}`} target="_blank" rel="noopener noreferrer" style={{ fontFamily: "'Lato',sans-serif", fontSize: 9, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6C63FF', marginBottom: 24, textDecoration: 'none' }}>
                       VIEW ON STARKSCAN →
                     </a>
                   )}
